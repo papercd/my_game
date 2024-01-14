@@ -1,5 +1,9 @@
+
 import pygame
 import sys 
+from scripts.tilemap import Tilemap
+from scripts.utils import load_image,load_images
+from scripts.entities import PhysicsEntity,PlayerEntity
 
 #now we need to add in the we have the player, now we need to add in the tiles. Now this is where things get a lot more difficult to follow. 
 
@@ -7,22 +11,44 @@ class myGame:
     def __init__(self):
         pygame.init() 
         pygame.display.set_caption('myGame')
-        self.screen = pygame.display.set_mode((500,500))
+        self.screen = pygame.display.set_mode((640,480))
         self.clock = pygame.Clock()
+        self.display = pygame.Surface((320,240))
 
-        self.player = pygame.image.load('data/images/entities/player.png')
-        self.player.set_colorkey((0,0,0))
-        self.player_pos = [100,100]
+        #so coming back to here, we will define an assets dictionary that contains all of the assets
+        #(sprites) that we are going to use to create our game. 
+
+        #Now that we have our load_image function defined, let's load the background into our assets 
+        #and have that blitted onto our screen rather than just a gray screen. 
+        self.assets = {
+            'decor' : load_images('tiles/decor'),
+            'grass' : load_images('tiles/grass'),
+            'large_decor' : load_images('tiles/large_decor'),
+            'stone' : load_images('tiles/stone'),
+            'player' : load_image('entities/player.png'),
+            'background': load_image('background.png'),
+        } 
+
+        self.Tilemap = Tilemap(self,tile_size=16)
+        self.Tilemap.draw_tilemap()
+        self.player = PlayerEntity(self,(50,50),(8,15))
         self.player_movement = [False,False]
+
+        #alright, now I am going to add a physics engine to make the player 
+        #be able to jump, and collide into things. First, I am going to make 
+        # a physics entity class from which we can create objects to apply physics onto, 
+        #then create the player entity from that class.
     
 
     def run(self):
         while True: 
-            self.screen.fill((100,100,100))
+            self.display.blit(self.assets['background'],[0,0])
 
-            self.player_pos[0] += (self.player_movement[1] - self.player_movement[0])* 3
-
-            self.screen.blit(self.player, self.player_pos)
+            #Now that you've defined the update and render functions internally in the playerEntity class, 
+            #We don't need the code here. 
+            self.player.update_pos((self.player_movement[1]-self.player_movement[0],0))
+            self.player.render(self.display)
+            self.Tilemap.render(self.display)
             for event in pygame.event.get():
                 #We need to define when the close button is pressed on the window. 
                 if event.type == pygame.QUIT: 
@@ -44,6 +70,7 @@ class myGame:
                         self.player_movement[1] = False 
         
             #pygame.display.update() updates the screen, and the clock.tick() adds the sleep in between every frame. 
+            self.screen.blit(pygame.transform.scale(self.display,self.screen.get_size()),(0,0))
             pygame.display.update()
             self.clock.tick(60)
 
