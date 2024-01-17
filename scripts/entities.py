@@ -15,12 +15,15 @@ class PhysicsEntity:
         self.pos = list(pos)  #this list() ensures that the position variable that you pass to the constructor 
                               #becomes a list. This gives us flexibility with passing argumments here for example 
                               #when we pass a tuple, this allows us to actually manage the position variable, as tuples can't be modified after initialization.
+        self.collisions = {'up' :False,'down' : False, 'left': False, 'right': False }
         self.size = size
         self.velocity = [0,0]
+
+    def rect(self):
+        return pygame.Rect(self.pos[0],self.pos[1],self.size[0],self.size[1])
     
-    def update_pos(self, movement = (0,0)):
-
-
+    def update_pos(self, tile_map, movement = (0,0)):
+        self.collisions = {'up' :False,'down' : False, 'left': False, 'right': False }
         #ok, so this function allows us to update the position of the physics entity
         #when updating the position of the physics entity, we need to think about movement in two dimensions. 
         #the x-dimension, where the movement is directly modified by the player, and the y-dimension, where gravity 
@@ -29,7 +32,7 @@ class PhysicsEntity:
         #I am going to add the gravity factor here now.gravity affects the player to accelerate downwards. meaning that velocity increases every frame, until the 
         #velocity reaches terminal velocity. 
 
-        self.velocity[1] = min(5,self.velocity[1] +0.3)
+        self.velocity[1] = min(5,self.velocity[1] +0.1)
 
         #I will define a frame movement variable that defines how much movement there should be in this particular frame.
         frame_movement =  (movement[0] + self.velocity[0], movement[1] + self.velocity[1])
@@ -40,18 +43,41 @@ class PhysicsEntity:
         #add the collision detection here. So, a physics entity has a size. which represents the dimensions of the encompassing rectangle
         #if any of the edges of the rectangle meets with an edge of any other rectangle, the position is set to the edge of the
         # rectangle that is being collided against. 
-
         
-        #update the position of the entity by this frame movement 
-        self.pos[0] += frame_movement[0]
-        self.pos[1] += frame_movement[1]
     
+        self.pos[0] += frame_movement[0]
+        entity_rect = self.rect() 
+        for rect in tile_map.physics_rects_around(self.pos):
+            if entity_rect.colliderect(rect):
+                if frame_movement[0] > 0: 
+                    self.collisions['right'] = True
+                    entity_rect.right = rect.left 
+                if frame_movement[0] < 0: 
+                    self.collisions['left'] = True
+                    entity_rect.left = rect.right 
+                self.pos[0] = entity_rect.x 
+        
+        self.pos[1] += frame_movement[1]
+        entity_rect = self.rect() 
+        for rect in tile_map.physics_rects_around(self.pos):
+            if entity_rect.colliderect(rect):
+                if frame_movement[1] > 0: 
+                    self.collisions['down'] = True
+                    entity_rect.bottom = rect.top  
+                if frame_movement[1] < 0: 
+                    self.collisions['up'] = True
+                    entity_rect.top = rect.bottom
+                self.velocity[1] = 0 
+                self.pos[1] = entity_rect.y 
+
+
+
 
     #for any render function, you will need to pass it the surface on which you want to blit the object on. 
-    def render(self,surf):
+    def render(self,surf,offset):
         #now here you need a sprite, and you need the position on which you want to print this on. 
         
-        surf.blit(self.game.assets[self.type],self.pos)
+        surf.blit(self.game.assets[self.type],(self.pos[0] - offset[0],self.pos[1]-offset[1]))
 
 
 #I realized that to specifically add a sprite to the player, I would need to create a separate class that is 
@@ -59,9 +85,15 @@ class PhysicsEntity:
 class PlayerEntity(PhysicsEntity):
     def __init__(self,game,pos,size):
         super().__init__(game,'player',pos,size)
-
+        self.jump_count = 2
+        self.on_wall = self.collisions['left'] or self.collisions['right']
         #the player class will have all the properties and methods of the physicsEntity class, it's just that its size 
         #and type is predefined.
         
+    def update_pos(self, tile_map, movement=(0, 0)):
+        super().update_pos(tile_map, movement)
+        if self.collisions['down'] == True: 
+            self.jump_count =2 
+         
 
 

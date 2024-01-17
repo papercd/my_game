@@ -33,7 +33,9 @@ class myGame:
         self.Tilemap.draw_tilemap()
         self.player = PlayerEntity(self,(50,50),(8,15))
         self.player_movement = [False,False]
-
+        self.scroll = [0,0]
+        
+    
         #alright, now I am going to add a physics engine to make the player 
         #be able to jump, and collide into things. First, I am going to make 
         # a physics entity class from which we can create objects to apply physics onto, 
@@ -44,11 +46,15 @@ class myGame:
         while True: 
             self.display.blit(self.assets['background'],[0,0])
 
+            self.scroll[0] += (self.player.rect().centerx - self.display.get_width() /2 - self.scroll[0])/30
+            self.scroll[1] += (self.player.rect().centery - self.display.get_height() /2 - self.scroll[1])/30
+            render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
+
             #Now that you've defined the update and render functions internally in the playerEntity class, 
             #We don't need the code here. 
-            self.player.update_pos((self.player_movement[1]-self.player_movement[0],0))
-            self.player.render(self.display)
-            self.Tilemap.render(self.display)
+            self.player.update_pos(self.Tilemap,(self.player_movement[1]-self.player_movement[0],0))
+            self.player.render(self.display,render_scroll)
+            self.Tilemap.render(self.display,render_scroll)
             for event in pygame.event.get():
                 #We need to define when the close button is pressed on the window. 
                 if event.type == pygame.QUIT: 
@@ -62,6 +68,12 @@ class myGame:
                         self.player_movement[0] = True
                     if event.key == pygame.K_RIGHT: 
                         self.player_movement[1] = True
+                    if event.key == pygame.K_UP:
+                        if self.player.jump_count > 0:
+                            self.player.velocity[1] = -3
+                            self.player.jump_count -= 1
+
+                        
                 #define when the right or left arrow keys are then lifted, the corresponding player's movement variable values are changed back to false.
                 if event.type == pygame.KEYUP: 
                     if event.key == pygame.K_LEFT: 
