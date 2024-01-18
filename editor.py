@@ -31,7 +31,11 @@ class Editor:
         self.movement = [False,False,False,False]
 
         self.Tilemap = Tilemap(self,tile_size=16)
-        self.Tilemap.draw_tilemap()
+        
+        try: 
+            self.Tilemap.load('map.json')
+        except FileNotFoundError:
+            pass
         
         self.scroll = [0,0]
 
@@ -42,6 +46,9 @@ class Editor:
         self.clicking = False 
         self.right_clicking = False 
         self.var_shift = False 
+
+        #Now we are going to add a toggle button that we are going to use to toggle between off-grid tiles and on-grid tiles. 
+        self.on_grid = True 
     
     def run(self):
         while True: 
@@ -75,18 +82,34 @@ class Editor:
 
             #you want to know where your selected tile is going to be placed. 
 
-            self.display.blit(selected_tile, (tile_pos[0]*self.Tilemap.tile_size - self.scroll[0],tile_pos[1]*self.Tilemap.tile_size - self.scroll[1]))
+            #add the toggle part in 
+            if self.on_grid: 
+                self.display.blit(selected_tile, (tile_pos[0]*self.Tilemap.tile_size - self.scroll[0],tile_pos[1]*self.Tilemap.tile_size - self.scroll[1]))
 
+                #now that we have our mouse position, we are going to place the selected tile into our tilemap. 
+                if self.clicking: 
+                    self.Tilemap.tilemap[str(tile_pos[0])+';'+str(tile_pos[1])] = Tile(self.tile_list[self.tile_group],self.tile_variant,tile_pos)
+                 #now that is nice and all, but now I need to be able to delete tiles from our tilemap. 
+                if self.right_clicking: 
+                    click_loc = str(tile_pos[0]) + ';' + str(tile_pos[1])
+                    if click_loc in self.Tilemap.tilemap: 
+                        del self.Tilemap.tilemap[click_loc]
 
-            #now that we have our mouse position, we are going to place the selected tile into our tilemap. 
-            if self.clicking: 
-                self.Tilemap.tilemap[str(tile_pos[0])+';'+str(tile_pos[1])] = Tile(self.tile_list[self.tile_group],self.tile_variant,tile_pos)
+            if not self.on_grid: 
+                #off grid tiles 
+                self.display.blit(selected_tile, mpos)
+
+                if self.clicking: 
+                    self.Tilemap.offgrid_tiles.append(Tile(self.tile_list[self.tile_group],self.tile_variant, (mpos[0] + self.scroll[0], mpos[1] + self.scroll[1]))) 
+                if self.right_clicking: 
+                    for tile in self.Tilemap.offgrid_tiles.copy():
+                        check_rect = pygame.Rect(tile.pos[0] - self.scroll[0],tile.pos[1] - self.scroll[1], self.assets[tile.type][tile.variant].get_width(),self.assets[tile.type][tile.variant].get_height())
+                        if check_rect.collidepoint(mpos):
+                            self.Tilemap.offgrid_tiles.remove(tile)
+
             
-            #now that is nice and all, but now I need to be able to delete tiles from our tilemap. 
-            if self.right_clicking: 
-                click_loc = str(tile_pos[0]) + ';' + str(tile_pos[1])
-                if click_loc in self.Tilemap.tilemap: 
-                    del self.Tilemap.tilemap[click_loc]
+            
+           
                 
 
             self.display.blit(selected_tile,(5,5))
@@ -133,6 +156,10 @@ class Editor:
                         self.movement[3] = True
                     if event.key == pygame.K_LSHIFT:
                         self.var_shift = True 
+                    if event.key == pygame.K_g: 
+                        self.on_grid = not self.on_grid 
+                    if event.key == pygame.K_o: 
+                        self.Tilemap.save('map.json')
 
                 if event.type == pygame.KEYUP: 
                     if event.key == pygame.K_a: 
