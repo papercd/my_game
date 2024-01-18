@@ -1,11 +1,12 @@
 
 import pygame
+import random
 import sys 
 from scripts.tilemap import Tilemap
 from scripts.utils import load_image,load_images,Animation
 from scripts.entities import PhysicsEntity,PlayerEntity
 from scripts.clouds import Clouds
-
+from scripts.particles import Particle
 #now we need to add in the we have the player, now we need to add in the tiles. Now this is where things get a lot more difficult to follow. 
 
 class myGame:
@@ -34,6 +35,7 @@ class myGame:
             'player/jump' : Animation(load_images('entities/player/jump'), img_dur =5),
             'player/slide' : Animation(load_images('entities/player/slide'), img_dur =5),
             'player/wall_slide' : Animation(load_images('entities/player/idle'), img_dur =4),
+            'particle/leaf':Animation(load_images('particles/leaf'),img_dur =20,loop=False)
         } 
 
         self.clouds = Clouds(self.assets['clouds'],count = 10, direction ='right')
@@ -41,7 +43,18 @@ class myGame:
     
 
         self.Tilemap = Tilemap(self,tile_size=16)
-        self.Tilemap.draw_tilemap()
+        self.Tilemap.load('map.json')
+
+        #adding leaf shedding particle effects by locating where the trees are in the tilemap and spawning leaves in a certain location with regards to 
+        #that tree location. 
+
+        self.leaf_spawners = []
+        for tree in self.Tilemap.extract([('large_decor',2)],keep = True):
+            self.leaf_spawners.append(pygame.Rect(4+tree.pos[0], 4+tree.pos[1],23,13))
+        
+        self.particles = []
+
+
         self.player = PlayerEntity(self,(50,50),(8,15))
         self.player_movement = [False,False]
         self.scroll = [0,0]
@@ -59,6 +72,11 @@ class myGame:
             self.scroll[1] += (self.player.rect().centery - self.display.get_height() /2 - self.scroll[1])/30
             render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
 
+            for rect in self.leaf_spawners:
+                if random.random() * 399999 < rect.width * rect.height: 
+                    pos = (rect.x +random.random()* rect.width,rect.y + random.random() * rect.height)
+                    self.particles.append(Particle(self,'leaf',pos,velocity=[random.randrange(-100,100)/1000,0.3], frame = random.randint(0,20)))
+
             self.display.blit(self.assets['background'],[0,0])
 
 
@@ -71,9 +89,16 @@ class myGame:
 
             #Now that you've defined the update and render functions internally in the playerEntity class, 
             #We don't need the code here. 
+            self.Tilemap.render(self.display,render_scroll)
             self.player.update_pos(self.Tilemap,(self.player_movement[1]-self.player_movement[0],0))
             self.player.render(self.display,render_scroll)
-            self.Tilemap.render(self.display,render_scroll)
+
+            for particle in self.particles.copy():
+                kill =particle.update()
+                particle.render(self.display,offset = render_scroll)
+                if kill: 
+                    self.particles.remove(particle)
+
             for event in pygame.event.get():
                 #We need to define when the close button is pressed on the window. 
                 if event.type == pygame.QUIT: 

@@ -18,6 +18,15 @@ class PhysicsEntity:
         self.collisions = {'up' :False,'down' : False, 'left': False, 'right': False }
         self.size = size
         self.velocity = [0,0]
+        self.state = ''
+        self.anim_offset = (-3,-3)
+        self.flip = False
+        self.set_state('idle')
+
+    def set_state(self,action):
+        if action != self.state: 
+            self.state = action 
+            self.animation = self.game.assets[self.type + '/' + self.state].copy() 
 
     def rect(self):
         return pygame.Rect(self.pos[0],self.pos[1],self.size[0],self.size[1])
@@ -64,20 +73,26 @@ class PhysicsEntity:
                 if frame_movement[1] > 0: 
                     self.collisions['down'] = True
                     entity_rect.bottom = rect.top  
-                if frame_movement[1] < 0: 
+                if frame_movement[1] < 0:  
                     self.collisions['up'] = True
                     entity_rect.top = rect.bottom
                 self.velocity[1] = 0 
                 self.pos[1] = entity_rect.y 
 
+        if movement[0] > 0:
+            self.flip = False
+        if movement[0] < 0 :
+            self.flip = True 
+
+        self.animation.update()
 
 
 
     #for any render function, you will need to pass it the surface on which you want to blit the object on. 
     def render(self,surf,offset):
         #now here you need a sprite, and you need the position on which you want to print this on. 
+        surf.blit(pygame.transform.flip(self.animation.img(),self.flip, False),(self.pos[0]-offset[0]+self.anim_offset[0],self.pos[1]-offset[1]+self.anim_offset[1]))
         
-        surf.blit(self.game.assets[self.type],(self.pos[0] - offset[0],self.pos[1]-offset[1]))
 
 
 #I realized that to specifically add a sprite to the player, I would need to create a separate class that is 
@@ -86,14 +101,33 @@ class PlayerEntity(PhysicsEntity):
     def __init__(self,game,pos,size):
         super().__init__(game,'player',pos,size)
         self.jump_count = 2
+        self.first_jump = False 
         self.on_wall = self.collisions['left'] or self.collisions['right']
-        #the player class will have all the properties and methods of the physicsEntity class, it's just that its size 
-        #and type is predefined.
+        self.air_time = 0
         
     def update_pos(self, tile_map, movement=(0, 0)):
         super().update_pos(tile_map, movement)
-        if self.collisions['down'] == True: 
+        self.air_time+=1
+        if self.collisions['down']:
             self.jump_count =2 
+            self.air_time = 0
+        if self.air_time > 4:
+            self.set_state('jump')
+        elif movement[0] != 0:
+            self.set_state('run')
+        else: 
+            self.set_state('idle') 
          
+    def player_jump(self):
+        if self.jump_count == 2:
+            if self.state == 'jump':
+                self.jump_count -=2
+                self.velocity[1] = -3
+            else: 
+                self.jump_count -=1
+                self.velocity[1] = -3    
+        elif self.jump_count ==1: 
+            self.jump_count -=1
+            self.velocity[1] = -3  
 
 

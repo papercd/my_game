@@ -46,6 +46,7 @@ class Editor:
         self.clicking = False 
         self.right_clicking = False 
         self.var_shift = False 
+        self.scroll_Fast = False 
 
         #Now we are going to add a toggle button that we are going to use to toggle between off-grid tiles and on-grid tiles. 
         self.on_grid = True 
@@ -55,10 +56,11 @@ class Editor:
             self.display.fill((0,0,0))
             #now we want to be able to move around our camera. with the arrow keys. 
 
-            SCROLL_SPEED =2
+            SCROLL_SPEED =3
+            SCROLL_INCREM = self.scroll_Fast * 5
 
-            self.scroll[0] += (self.movement[1] - self.movement[0]) * SCROLL_SPEED
-            self.scroll[1] += (self.movement[3] - self.movement[2]) * SCROLL_SPEED
+            self.scroll[0] += (self.movement[1] - self.movement[0]) * (SCROLL_SPEED+SCROLL_INCREM)
+            self.scroll[1] += (self.movement[3] - self.movement[2]) * (SCROLL_SPEED+SCROLL_INCREM)
 
 
 
@@ -156,10 +158,14 @@ class Editor:
                         self.movement[3] = True
                     if event.key == pygame.K_LSHIFT:
                         self.var_shift = True 
+                    if event.key == pygame.K_RSHIFT: 
+                        self.scroll_Fast = not self.scroll_Fast
                     if event.key == pygame.K_g: 
                         self.on_grid = not self.on_grid 
                     if event.key == pygame.K_o: 
                         self.Tilemap.save('map.json')
+                    if event.key == pygame.K_t:
+                        self.Tilemap.autotile()
 
                 if event.type == pygame.KEYUP: 
                     if event.key == pygame.K_a: 
