@@ -2,8 +2,9 @@
 import pygame
 import sys 
 from scripts.tilemap import Tilemap
-from scripts.utils import load_image,load_images
+from scripts.utils import load_image,load_images,Animation
 from scripts.entities import PhysicsEntity,PlayerEntity
+from scripts.clouds import Clouds
 
 #now we need to add in the we have the player, now we need to add in the tiles. Now this is where things get a lot more difficult to follow. 
 
@@ -27,7 +28,17 @@ class myGame:
             'stone' : load_images('tiles/stone'),
             'player' : load_image('entities/player.png'),
             'background': load_image('background.png'),
+            'clouds': load_images('clouds'),
+            'player/idle' : Animation(load_images('entities/player/idle'), img_dur =6),
+            'player/run' : Animation(load_images('entities/player/run'), img_dur =4),
+            'player/jump' : Animation(load_images('entities/player/jump'), img_dur =5),
+            'player/slide' : Animation(load_images('entities/player/slide'), img_dur =5),
+            'player/wall_slide' : Animation(load_images('entities/player/idle'), img_dur =4),
         } 
+
+        self.clouds = Clouds(self.assets['clouds'],count = 10, direction ='right')
+        self.opp_clouds = Clouds(self.assets['clouds'],count = 6, direction ='left')
+    
 
         self.Tilemap = Tilemap(self,tile_size=16)
         self.Tilemap.draw_tilemap()
@@ -44,11 +55,19 @@ class myGame:
 
     def run(self):
         while True: 
-            self.display.blit(self.assets['background'],[0,0])
-
             self.scroll[0] += (self.player.rect().centerx - self.display.get_width() /2 - self.scroll[0])/30
             self.scroll[1] += (self.player.rect().centery - self.display.get_height() /2 - self.scroll[1])/30
             render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
+
+            self.display.blit(self.assets['background'],[0,0])
+
+
+            self.clouds.update()
+            self.clouds.render(self.display,render_scroll)
+
+            self.opp_clouds.update()
+            self.opp_clouds.render(self.display,render_scroll)
+            
 
             #Now that you've defined the update and render functions internally in the playerEntity class, 
             #We don't need the code here. 
@@ -69,9 +88,7 @@ class myGame:
                     if event.key == pygame.K_RIGHT: 
                         self.player_movement[1] = True
                     if event.key == pygame.K_UP:
-                        if self.player.jump_count > 0:
-                            self.player.velocity[1] = -3
-                            self.player.jump_count -= 1
+                        self.player.player_jump() 
 
                         
                 #define when the right or left arrow keys are then lifted, the corresponding player's movement variable values are changed back to false.
