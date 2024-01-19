@@ -8,15 +8,16 @@ from scripts.utils import load_image,load_images,Animation
 from scripts.entities import PhysicsEntity,PlayerEntity
 from scripts.clouds import Clouds
 from scripts.particles import Particle
+from scripts.background import Background
 #now we need to add in the we have the player, now we need to add in the tiles. Now this is where things get a lot more difficult to follow. 
 
 class myGame:
     def __init__(self):
         pygame.init() 
         pygame.display.set_caption('myGame')
-        self.screen = pygame.display.set_mode((640,480))
+        self.screen = pygame.display.set_mode((1040,652))
         self.clock = pygame.Clock()
-        self.display = pygame.Surface((320,240))
+        self.display = pygame.Surface((self.screen.get_width()//2,self.screen.get_height()//2))
 
         #so coming back to here, we will define an assets dictionary that contains all of the assets
         #(sprites) that we are going to use to create our game. 
@@ -30,6 +31,9 @@ class myGame:
             'stone' : load_images('tiles/stone'),
             'player' : load_image('entities/player.png'),
             'background': load_image('background.png'),
+            'test_background' : load_image('test_background.png'),
+
+
             'clouds': load_images('clouds'),
             'player/idle' : Animation(load_images('entities/player/idle'), img_dur =6),
             'player/run' : Animation(load_images('entities/player/run'), img_dur =4),
@@ -41,7 +45,7 @@ class myGame:
 
         self.clouds = Clouds(self.assets['clouds'],count = 10, direction ='right')
         self.opp_clouds = Clouds(self.assets['clouds'],count = 6, direction ='left')
-    
+
 
         self.Tilemap = Tilemap(self,tile_size=16)
         self.Tilemap.load('map.json')
@@ -78,7 +82,10 @@ class myGame:
                     pos = (rect.x +random.random()* rect.width,rect.y + random.random() * rect.height)
                     self.particles.append(Particle(self,'leaf',pos,velocity=[random.randrange(-100,100)/1000,0.3], frame = random.randint(0,20)))
 
-            self.display.blit(self.assets['background'],[0,0])
+           
+                    
+            background = pygame.transform.scale(self.assets['test_background'],(self.display.get_width()*1.4,self.display.get_height()*1.4))
+            self.display.blit(background, [0-(0.4*self.display.get_width())/2-render_scroll[0]/120,0-(0.4*self.display.get_height())/2-render_scroll[1]/120])
 
 
             self.clouds.update()
@@ -126,9 +133,10 @@ class myGame:
                     if event.key == pygame.K_RIGHT: 
                         self.player_movement[1] = False 
         
-            #pygame.display.update() updates the screen, and the clock.tick() adds the sleep in between every frame. 
+        
             self.screen.blit(pygame.transform.scale(self.display,self.screen.get_size()),(0,0))
             pygame.display.update()
+
             self.clock.tick(60)
 
 myGame().run()

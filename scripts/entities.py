@@ -41,7 +41,16 @@ class PhysicsEntity:
         #I am going to add the gravity factor here now.gravity affects the player to accelerate downwards. meaning that velocity increases every frame, until the 
         #velocity reaches terminal velocity. 
 
+
+        #this velocity part should be unique to the player, but whatever. I can change this later. 
         self.velocity[1] = min(5,self.velocity[1] +0.1)
+
+        if self.velocity[0] < 0:
+            self.velocity[0] = min(self.velocity[0]+0.3, 0)  
+        if self.velocity[0] > 0:
+            self.velocity[0] = max(self.velocity[0] -0.3,0)
+
+         
 
         #I will define a frame movement variable that defines how much movement there should be in this particular frame.
         frame_movement =  (movement[0] + self.velocity[0], movement[1] + self.velocity[1])
@@ -66,6 +75,9 @@ class PhysicsEntity:
                     entity_rect.left = rect.right 
                 self.pos[0] = entity_rect.x 
         
+
+
+
         self.pos[1] += frame_movement[1]
         entity_rect = self.rect() 
         for rect in tile_map.physics_rects_around(self.pos):
@@ -97,28 +109,56 @@ class PhysicsEntity:
 
 #I realized that to specifically add a sprite to the player, I would need to create a separate class that is 
 #inherited from the PhysicsEntity class.
+        
 class PlayerEntity(PhysicsEntity):
     def __init__(self,game,pos,size):
         super().__init__(game,'player',pos,size)
         self.jump_count = 2
-        self.first_jump = False 
+        self.wall_slide = False
         self.on_wall = self.collisions['left'] or self.collisions['right']
         self.air_time = 0
         
     def update_pos(self, tile_map, movement=(0, 0)):
         super().update_pos(tile_map, movement)
-        self.air_time+=1
+        self.air_time +=1
         if self.collisions['down']:
             self.jump_count =2 
             self.air_time = 0
-        if self.air_time > 4:
-            self.set_state('jump')
-        elif movement[0] != 0:
-            self.set_state('run')
-        else: 
-            self.set_state('idle') 
+        
+        self.wall_slide = False
+        self.on_wall = self.collisions['left'] or self.collisions['right']
+
+        if self.on_wall and self.air_time > 4:
+            self.wall_slide = True 
+            self.velocity[1] = min(self.velocity[1],0.5)
+            if self.collisions['right']:
+                self.flip = False
+            else:
+                self.flip = True 
+            self.set_state('wall_slide')
+        
+        if not self.wall_slide: 
+            if self.air_time > 4:
+                self.set_state('jump')
+            elif movement[0] != 0:
+                self.set_state('run')
+            else: 
+                self.set_state('idle') 
+
          
     def player_jump(self):
+
+        if self.wall_slide: 
+            self.jump_count = 1
+            if self.collisions['left']:
+                
+                self.velocity[0] =  3.5
+            if self.collisions['right']:
+                
+                self.velocity[0] = -3.5
+            self.velocity[1] =-2.6
+            
+
         if self.jump_count == 2:
             if self.state == 'jump':
                 self.jump_count -=2
