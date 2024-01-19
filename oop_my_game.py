@@ -1,6 +1,7 @@
 
 import pygame
 import random
+import math
 import sys 
 from scripts.tilemap import Tilemap
 from scripts.utils import load_image,load_images,Animation
@@ -34,7 +35,7 @@ class myGame:
             'player/run' : Animation(load_images('entities/player/run'), img_dur =4),
             'player/jump' : Animation(load_images('entities/player/jump'), img_dur =5),
             'player/slide' : Animation(load_images('entities/player/slide'), img_dur =5),
-            'player/wall_slide' : Animation(load_images('entities/player/idle'), img_dur =4),
+            'player/wall_slide' : Animation(load_images('entities/player/wall_slide'), img_dur =4),
             'particle/leaf':Animation(load_images('particles/leaf'),img_dur =20,loop=False)
         } 
 
@@ -96,6 +97,8 @@ class myGame:
             for particle in self.particles.copy():
                 kill =particle.update()
                 particle.render(self.display,offset = render_scroll)
+                if particle.type =='leaf':
+                    particle.pos[0] += math.sin(particle.animation.frame * 0.035) * 0.3
                 if kill: 
                     self.particles.remove(particle)
 
