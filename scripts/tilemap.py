@@ -113,6 +113,10 @@ class Tilemap:
                 rect = pygame.Rect(tile.pos[0]*self.tile_size,tile.pos[1]*self.tile_size,self.tile_size,self.tile_size) 
                 rects.append(rect)
         return rects 
+    
+
+    def player_rects_around(self):
+        pass 
 
     def autotile(self):
         for loc in self.tilemap:

@@ -2,6 +2,7 @@
 #of my game. 
 
 import pygame 
+from scripts.particles import Particle
 
 class PhysicsEntity:
     #alright, what does a physics entity need? it needs a size, in 2 dimensions, 
@@ -19,10 +20,10 @@ class PhysicsEntity:
         self.size = size
         self.velocity = [0,0]
         self.state = ''
-        self.anim_offset = (-3,-3)
+        self.anim_offset = (-0,-0)
         self.flip = False
         self.set_state('idle')
-        self.movement_intent = [0,0]
+        self.cut_movement_input = False 
 
     def set_state(self,action):
         if action != self.state: 
@@ -33,7 +34,7 @@ class PhysicsEntity:
         return pygame.Rect(self.pos[0],self.pos[1],self.size[0],self.size[1])
     
     def update_pos(self, tile_map, movement = (0,0)):
-        self.movement_intent = movement
+        
         self.collisions = {'up' :False,'down' : False, 'left': False, 'right': False }
         #ok, so this function allows us to update the position of the physics entity
         #when updating the position of the physics entity, we need to think about movement in two dimensions. 
@@ -45,17 +46,20 @@ class PhysicsEntity:
 
 
         #this velocity part should be unique to the player, but whatever. I can change this later. 
-        self.velocity[1] = min(5,self.velocity[1] +0.1)
+        self.velocity[1] = min(5,self.velocity[1] +0.2)
 
         if self.velocity[0] < 0:
-            self.velocity[0] = min(self.velocity[0]+0.3, 0)  
+            self.velocity[0] = min(self.velocity[0]+0.25, 0)  
         if self.velocity[0] > 0:
-            self.velocity[0] = max(self.velocity[0] -0.3,0)
+            self.velocity[0] = max(self.velocity[0] -0.25,0)
 
          
 
         #I will define a frame movement variable that defines how much movement there should be in this particular frame.
-        frame_movement =  (movement[0] + self.velocity[0], movement[1] + self.velocity[1])
+        if self.cut_movement_input:
+            frame_movement = (self.velocity[0],self.velocity[1])
+        else: 
+            frame_movement =  (movement[0] + self.velocity[0], movement[1] + self.velocity[1])
 
         #and this works because think of it like a frame being a single point in time. the current position in that frame 
         #plus the velocity of the entity in that frame would give you? The position of the entity in the next frame.            
@@ -134,10 +138,12 @@ class PlayerEntity(PhysicsEntity):
         super().update_pos(tile_map, movement)
         self.air_time +=1
         self.frame_count += 1
+        self.cut_movement_input = False 
 
         if self.collisions['down']:
             self.jump_count =2 
             self.air_time = 0
+            
             
         self.wall_slide = False
         self.on_wall = self.collisions['left'] or self.collisions['right']
@@ -155,7 +161,11 @@ class PlayerEntity(PhysicsEntity):
         if not self.wall_slide: 
             if self.air_time > 4:
                 self.boost_on_next_tap = False 
-                self.set_state('jump')
+                if self.velocity[1] < 0:
+                    self.set_state('jump_up')
+                elif self.velocity[1] >0:
+                    self.set_state('jump_down')
+                
             elif movement[0] != 0:
                 self.set_state('run')
 
@@ -165,18 +175,26 @@ class PlayerEntity(PhysicsEntity):
                     self.running_time += 1
                 elif (self.frame_between_taps > 1 and self.frame_between_taps <40):
     
-                    if self.boost_on_next_tap and self.running_time < 5:
+                    if self.boost_on_next_tap and self.running_time < 10:
                         #then you boost.
-                        if self.movement_intent[0] > 0 and self.boost_dir == False:
-                            self.velocity[0] = 5.5
-                        if self.movement_intent[0] < 0 and self.boost_dir: 
-                            self.velocity[0] = -5.5
-                      
+                        dust = None
+                        
+                        if movement[0] > 0 and self.boost_dir == False:
+                            dust = Particle(self.game,'dash_right',(self.rect().topleft[0]-1.4,self.rect().topleft[1]+2),velocity=[0,0],frame=0)
+                            self.velocity[0] = 5.0
+                        if movement[0] < 0 and self.boost_dir:
+                             
+                            #flip the dust particle effect
+                            dust = Particle(self.game,'dash_left',(self.rect().topright[0]+1.4,self.rect().topright[1]+2),velocity=[0,0],frame=0)
+                            self.velocity[0] = -5.0
+
+                        
+                        self.game.particles.append(dust)
                         self.boost_on_next_tap = False
                     else:
-                        if self.movement_intent[0] > 0:
+                        if movement[0] > 0:
                             self.boost_dir = False
-                        if self.movement_intent[0] < 0: 
+                        if movement[0] < 0: 
                             self.boost_dir = True 
                         self.boost_on_next_tap = True 
                     self.running_time = 0
@@ -184,13 +202,13 @@ class PlayerEntity(PhysicsEntity):
 
                 self.frame_count =0
 
-
                 if self.slide:
+                    self.cut_movement_input = True
                     self.set_state('slide')
+                    
             else: 
                 self.set_state('idle') 
-                
-        
+
         
     def player_jump(self):
 
@@ -198,22 +216,22 @@ class PlayerEntity(PhysicsEntity):
             self.jump_count = 1
             if self.collisions['left']:
                 
-                self.velocity[0] =  3.5
+                self.velocity[0] =  3.6
             if self.collisions['right']:
                 
-                self.velocity[0] = -3.5
-            self.velocity[1] =-2.6
+                self.velocity[0] = -3.6
+            self.velocity[1] =-3.3
             
 
         if self.jump_count == 2:
             if self.state == 'jump':
                 self.jump_count -=2
-                self.velocity[1] = -3
+                self.velocity[1] = -3.5
             else: 
                 self.jump_count -=1
-                self.velocity[1] = -3    
+                self.velocity[1] = -3.5    
         elif self.jump_count ==1: 
             self.jump_count -=1
-            self.velocity[1] = -3  
+            self.velocity[1] = -3.5  
 
 

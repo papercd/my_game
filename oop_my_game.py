@@ -33,18 +33,36 @@ class myGame:
             'background': load_image('background.png'),
             'test_background' : load_image('test_background.png'),
 
+            'crosshair' : load_image('crosshair.png'),
 
-            'clouds': load_images('clouds'),
-            'player/idle' : Animation(load_images('entities/player/idle'), img_dur =6),
-            'player/run' : Animation(load_images('entities/player/run'), img_dur =4),
-            'player/jump' : Animation(load_images('entities/player/jump'), img_dur =5),
-            'player/slide' : Animation(load_images('entities/player/slide'), img_dur =5),
-            'player/wall_slide' : Animation(load_images('entities/player/wall_slide'), img_dur =4),
-            'particle/leaf':Animation(load_images('particles/leaf'),img_dur =20,loop=False)
+
+            'clouds': load_images('clouds/default'),
+            'gray1_clouds' : load_images('clouds/gray1',background = 'transparent'),
+            'gray2_clouds' : load_images('clouds/gray2',background = 'transparent'),
+            
+            'player/idle' : Animation(load_images('entities/player/idle',background='transparent'), img_dur =6),
+            'player/run' : Animation(load_images('entities/player/run',background='transparent'), img_dur =4),
+
+            'player/jump_up' : Animation(load_images('entities/player/jump/up',background='transparent'), img_dur =5),
+            'player/jump_down' : Animation(load_images('entities/player/jump/down',background='transparent'), img_dur =5,halt=True),
+           
+
+            'player/slide' : Animation(load_images('entities/player/slide',background='transparent'), img_dur =5),
+            'player/wall_slide' : Animation(load_images('entities/player/wall_slide',background='transparent'), img_dur =4),
+            
+
+
+            'particle/leaf':Animation(load_images('particles/leaf'),img_dur =20,loop=False),
+            
+            'particle/dash_left' : Animation(load_images('particles/dash/left',background='black'),img_dur=1,loop =False),
+            'particle/dash_right' : Animation(load_images('particles/dash/right',background='black'),img_dur=1,loop =False)
         } 
 
-        self.clouds = Clouds(self.assets['clouds'],count = 10, direction ='right')
-        self.opp_clouds = Clouds(self.assets['clouds'],count = 6, direction ='left')
+        #self.clouds = Clouds(self.assets['clouds'],count = 10, direction ='right')``
+        #self.opp_clouds = Clouds(self.assets['clouds'],count = 6, direction ='left')
+
+        self.gray_clouds = Clouds(self.assets['gray1_clouds'],count = 8,direction='right')
+        self.opp_gray_clouds = Clouds(self.assets['gray2_clouds'],count = 6, direction= 'left')
 
 
         self.Tilemap = Tilemap(self,tile_size=16)
@@ -57,10 +75,11 @@ class myGame:
         for tree in self.Tilemap.extract([('large_decor',2)],keep = True):
             self.leaf_spawners.append(pygame.Rect(4+tree.pos[0], 4+tree.pos[1],23,13))
         
+
         self.particles = []
 
 
-        self.player = PlayerEntity(self,(50,50),(8,15))
+        self.player = PlayerEntity(self,(50,50),(16,16))
         self.player_movement = [False,False]
         self.scroll = [0,0]
         
@@ -87,27 +106,42 @@ class myGame:
             background = pygame.transform.scale(self.assets['test_background'],(self.display.get_width()*1.4,self.display.get_height()*1.4))
             self.display.blit(background, [0-(0.4*self.display.get_width())/2- (render_scroll[0]/350) ,0-(0.4*self.display.get_height())/2 - (render_scroll[1]/350)])
 
+            self.gray_clouds.update()
+            self.gray_clouds.render(self.display,render_scroll)
 
-            self.clouds.update()
-            self.clouds.render(self.display,render_scroll)
+            self.opp_gray_clouds.update()
+            self.opp_gray_clouds.render(self.display,render_scroll)
 
-            self.opp_clouds.update()
-            self.opp_clouds.render(self.display,render_scroll)
+            #self.clouds.update()
+            #self.clouds.render(self.display,render_scroll)
+
+            #self.opp_clouds.update()
+            #self.opp_clouds.render(self.display,render_scroll)
             
 
             #Now that you've defined the update and render functions internally in the playerEntity class, 
             #We don't need the code here. 
             self.Tilemap.render(self.display,render_scroll)
-            self.player.update_pos(self.Tilemap,(self.player_movement[1]-self.player_movement[0],0))
-            self.player.render(self.display,render_scroll)
 
+            PLAYER_DEFAULT_SPEED = 1.5
+
+
+            self.player.update_pos(self.Tilemap,((self.player_movement[1]-self.player_movement[0])*PLAYER_DEFAULT_SPEED,0))
+            self.player.render(self.display,render_scroll)
+            mpos = pygame.mouse.get_pos()
+            mpos = (mpos[0]/2-24,mpos[1]/2-23)
+            self.display.blit(self.assets['crosshair'],mpos)
+        
             for particle in self.particles.copy():
-                kill =particle.update()
-                particle.render(self.display,offset = render_scroll)
-                if particle.type =='leaf':
-                    particle.pos[0] += math.sin(particle.animation.frame * 0.035) * 0.3
-                if kill: 
+                if particle == None: 
                     self.particles.remove(particle)
+                else:
+                    kill =particle.update()
+                    particle.render(self.display,offset = render_scroll)
+                    if particle.type =='leaf':
+                        particle.pos[0] += math.sin(particle.animation.frame * 0.035) * 0.3
+                    if kill: 
+                        self.particles.remove(particle)
 
             for event in pygame.event.get():
                 #We need to define when the close button is pressed on the window. 
@@ -118,28 +152,28 @@ class myGame:
 
                 #define when the right or left arrow keys are pressed, the corresponding player's movement variable varlues are changed. 
                 if event.type == pygame.KEYDOWN: 
-                    if event.key == pygame.K_LEFT: 
+                    if event.key == pygame.K_a: 
                         
                         self.player_movement[0] = True
-                    if event.key == pygame.K_RIGHT: 
+                    if event.key == pygame.K_d: 
                         
                         self.player_movement[1] = True
 
-                    if event.key == pygame.K_UP:
+                    if event.key == pygame.K_w:
                         self.player.player_jump() 
-                    if event.key == pygame.K_DOWN: 
+                    if event.key == pygame.K_s: 
                         self.player.slide = True 
 
                         
                 #define when the right or left arrow keys are then lifted, the corresponding player's movement variable values are changed back to false.
                 if event.type == pygame.KEYUP: 
-                    if event.key == pygame.K_LEFT: 
+                    if event.key == pygame.K_a: 
                         
                         self.player_movement[0] = False
-                    if event.key == pygame.K_RIGHT:
+                    if event.key == pygame.K_d:
                         
                         self.player_movement[1] = False 
-                    if event.key == pygame.K_DOWN: 
+                    if event.key == pygame.K_s: 
                         self.player.slide =False 
         
             self.screen.blit(pygame.transform.scale(self.display,self.screen.get_size()),(0,0))

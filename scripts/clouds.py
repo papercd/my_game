@@ -1,11 +1,13 @@
 import random 
 
 class Cloud:
-    def __init__(self,pos,sprite,speed,depth,direction):
+    def __init__(self,pos,sprite,speed,depth,direction,transparency = 120):
         self.pos = list(pos)
-        self.sprite = sprite
         self.speed = speed 
         self.depth = depth 
+        self.transparency = transparency
+        self.sprite = sprite
+        self.sprite.set_alpha(self.transparency)
         self.direction = direction 
 
     def update(self):

@@ -1,3 +1,5 @@
+import pygame
+
 class Particle: 
     def __init__(self,game, p_type, pos, velocity = [0,0], frame = 0):
         self.game = game 
@@ -5,8 +7,11 @@ class Particle:
         self.pos = list(pos)
         self.velocity = velocity
         self.animation = self.game.assets['particle/' + p_type].copy()
-        self.animation.frame = frame 
+        self.animation.frame = frame
+        
 
+  
+            
 
     def update(self):
         kill = False 
