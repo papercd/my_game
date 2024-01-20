@@ -22,6 +22,7 @@ class PhysicsEntity:
         self.anim_offset = (-3,-3)
         self.flip = False
         self.set_state('idle')
+        self.movement_intent = [0,0]
 
     def set_state(self,action):
         if action != self.state: 
@@ -32,6 +33,7 @@ class PhysicsEntity:
         return pygame.Rect(self.pos[0],self.pos[1],self.size[0],self.size[1])
     
     def update_pos(self, tile_map, movement = (0,0)):
+        self.movement_intent = movement
         self.collisions = {'up' :False,'down' : False, 'left': False, 'right': False }
         #ok, so this function allows us to update the position of the physics entity
         #when updating the position of the physics entity, we need to think about movement in two dimensions. 
@@ -115,16 +117,28 @@ class PlayerEntity(PhysicsEntity):
         super().__init__(game,'player',pos,size)
         self.jump_count = 2
         self.wall_slide = False
+        self.slide = False 
         self.on_wall = self.collisions['left'] or self.collisions['right']
         self.air_time = 0
+
+        #attributes required to implement double tap 
+      
+        self.boost_dir = False 
+        self.boost_on_next_tap = False 
+        self.frame_count = 0
+        self.frame_between_taps = 0
+        self.running_time = 0
         
+
     def update_pos(self, tile_map, movement=(0, 0)):
         super().update_pos(tile_map, movement)
         self.air_time +=1
+        self.frame_count += 1
+
         if self.collisions['down']:
             self.jump_count =2 
             self.air_time = 0
-        
+            
         self.wall_slide = False
         self.on_wall = self.collisions['left'] or self.collisions['right']
 
@@ -135,17 +149,49 @@ class PlayerEntity(PhysicsEntity):
                 self.flip = False
             else:
                 self.flip = True 
+            
             self.set_state('wall_slide')
         
         if not self.wall_slide: 
             if self.air_time > 4:
+                self.boost_on_next_tap = False 
                 self.set_state('jump')
             elif movement[0] != 0:
                 self.set_state('run')
+
+                self.frame_between_taps = self.frame_count
+              
+                if self.frame_between_taps == 1 :
+                    self.running_time += 1
+                elif (self.frame_between_taps > 1 and self.frame_between_taps <40):
+    
+                    if self.boost_on_next_tap and self.running_time < 5:
+                        #then you boost.
+                        if self.movement_intent[0] > 0 and self.boost_dir == False:
+                            self.velocity[0] = 5.5
+                        if self.movement_intent[0] < 0 and self.boost_dir: 
+                            self.velocity[0] = -5.5
+                      
+                        self.boost_on_next_tap = False
+                    else:
+                        if self.movement_intent[0] > 0:
+                            self.boost_dir = False
+                        if self.movement_intent[0] < 0: 
+                            self.boost_dir = True 
+                        self.boost_on_next_tap = True 
+                    self.running_time = 0
+                    
+
+                self.frame_count =0
+
+
+                if self.slide:
+                    self.set_state('slide')
             else: 
                 self.set_state('idle') 
-
-         
+                
+        
+        
     def player_jump(self):
 
         if self.wall_slide: 

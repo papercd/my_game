@@ -83,9 +83,9 @@ class myGame:
                     self.particles.append(Particle(self,'leaf',pos,velocity=[random.randrange(-100,100)/1000,0.3], frame = random.randint(0,20)))
 
            
-                    
+            #you should now add a cap to how much the map can move in either dimension, which you are going to add later. 
             background = pygame.transform.scale(self.assets['test_background'],(self.display.get_width()*1.4,self.display.get_height()*1.4))
-            self.display.blit(background, [0-(0.4*self.display.get_width())/2-render_scroll[0]/120,0-(0.4*self.display.get_height())/2-render_scroll[1]/120])
+            self.display.blit(background, [0-(0.4*self.display.get_width())/2- (render_scroll[0]/350) ,0-(0.4*self.display.get_height())/2 - (render_scroll[1]/350)])
 
 
             self.clouds.update()
@@ -119,20 +119,28 @@ class myGame:
                 #define when the right or left arrow keys are pressed, the corresponding player's movement variable varlues are changed. 
                 if event.type == pygame.KEYDOWN: 
                     if event.key == pygame.K_LEFT: 
+                        
                         self.player_movement[0] = True
                     if event.key == pygame.K_RIGHT: 
+                        
                         self.player_movement[1] = True
+
                     if event.key == pygame.K_UP:
                         self.player.player_jump() 
+                    if event.key == pygame.K_DOWN: 
+                        self.player.slide = True 
 
                         
                 #define when the right or left arrow keys are then lifted, the corresponding player's movement variable values are changed back to false.
                 if event.type == pygame.KEYUP: 
                     if event.key == pygame.K_LEFT: 
+                        
                         self.player_movement[0] = False
-                    if event.key == pygame.K_RIGHT: 
+                    if event.key == pygame.K_RIGHT:
+                        
                         self.player_movement[1] = False 
-        
+                    if event.key == pygame.K_DOWN: 
+                        self.player.slide =False 
         
             self.screen.blit(pygame.transform.scale(self.display,self.screen.get_size()),(0,0))
             pygame.display.update()
