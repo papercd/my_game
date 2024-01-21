@@ -164,32 +164,127 @@ class Weapon:
             deviation_fix_y = -angle_comp/30
             deviation_fix_x = -angle_comp/ 60     
         
+        print(angle_comp)
         rotated_weapon_display = pygame.transform.rotate(weapon_display,angle)
 
         #now depending on whether the gun is flipped, change the blit location. 
 
         if self.holder.state == 'idle':
             surf.blit(rotated_weapon_display,(self.anchor_point[0] - offset[0]-deviation_fix_x, self.anchor_point[1]-offset[1]-deviation_fix_y))
-        elif self.holder.state == 'run':
-            RUN_RENDER_OFFSET = 0
-            if self.holder.movement_intent[0] >0:
-                #if player is running to the right, 
-                if self.flipped: 
-                    #if the cursor is on the left side, 
+        elif self.holder.state == 'dash_right' or self.holder.state == 'dash_left':
+            #cap the angle of gun, and apply similar Render offsets.
+            #angle_comp = angle + ANGLE_OFFSET
+            pass 
             
-                    RUN_RENDER_OFFSET = 2
-                else: 
-                    #if the cursor is on the right side, 
-                    RUN_RENDER_OFFSET = 3
-            elif self.holder.movement_intent[0] < 0 :
-                #if the player is running to the left, 
-                if self.flipped: 
-                    #if the cursor is on the left side, 
-                    RUN_RENDER_OFFSET = -3
-                else: 
-                    RUN_RENDER_OFFSET = -2
+        else: 
+            RENDER_OFFSET_X = 0
+            RENDER_OFFSET_Y = 0
+            if self.holder.state == 'run':
+                
+                if self.holder.movement_intent[0] >0:
+                    #if player is running to the right, 
+                    if self.flipped: 
+                        #if the cursor is on the left side, 
+                
+                        RENDER_OFFSET_X = 1
+                    else: 
+                        #if the cursor is on the right side, 
+                        RENDER_OFFSET_X = 3
+                elif self.holder.movement_intent[0] < 0 :
+                    #if the player is running to the left, 
+                    if self.flipped: 
+                        #if the cursor is on the left side, 
+                        RENDER_OFFSET_X = -3
+                    else: 
+                        RENDER_OFFSET_X = -2
+                
+            elif self.holder.state == 'jump_up':
+                if self.holder.movement_intent[0] == 0 :
+                    if self.holder.flip: 
+                        
+                        #if player is jumping directly up,
+                        if self.flipped:
+                            #if the cursor is on the left side, 
+                            RENDER_OFFSET_Y = -2
+                            RENDER_OFFSET_X = -3
+                        else: 
+                        
+                            #if the cursor is on the right side, 
+                            RENDER_OFFSET_Y = -1
+                            RENDER_OFFSET_X = -1
+                    else: 
+                        if self.flipped: 
+                            #if the cursor is on the left side, 
+                            RENDER_OFFSET_Y = -1
+                            RENDER_OFFSET_X = 2
+                        else: 
+                            RENDER_OFFSET_Y = -2
+                            RENDER_OFFSET_X = 2
 
+                if self.holder.movement_intent[0] >0:
+                    #if player is jumping to the right, 
+                    if self.flipped:
+                        #if the cursor is on the left side, 
+                        RENDER_OFFSET_Y = -1
+                        RENDER_OFFSET_X = 1
+                    else: 
+                    
+                        #if the cursor is on the right side, 
+                        RENDER_OFFSET_Y = -2
+                        RENDER_OFFSET_X = 2.
+                elif self.holder.movement_intent[0] < 0 :
+                    #if the player is jumping to the left, 
+                    if self.flipped: 
+                        #if the cursor is on the left side, 
+                        RENDER_OFFSET_X = -3
+                    else: 
+                        #if the cursor is on the right side
+                        RENDER_OFFSET_X = -1
+            elif self.holder.state == 'jump_down':
+                if self.holder.movement_intent[0] == 0 :
+                    #if player is jumping directly up,
+                    if self.holder.flip: 
+                        if self.flipped:
+                            #if the cursor is on the left side, 
+                            RENDER_OFFSET_Y = -1
+                            RENDER_OFFSET_X = 2
+                        else: 
+                    
+                            #if the cursor is on the right side, 
+                            RENDER_OFFSET_Y = -1
+                            RENDER_OFFSET_X = 6
+                            
+                    else: 
+                        if self.flipped:
+                            #if the cursor is on the left side, 
+                            RENDER_OFFSET_Y = -1
+                            RENDER_OFFSET_X = 1
+                        else: 
+                        
+                            #if the cursor is on the right side, 
+                            RENDER_OFFSET_Y = -1
+                            RENDER_OFFSET_X = 3
+                if self.holder.movement_intent[0] >0:
+                    #if player is jumping to the right, 
+                    if self.flipped:
+                        #if the cursor is on the left side, 
+                
+                        RENDER_OFFSET_X = 1
+                    else: 
+                        #if the cursor is on the right side, 
+                        RENDER_OFFSET_Y = -1
+                        RENDER_OFFSET_X = 4
+                elif self.holder.movement_intent[0] < 0 :
+                    #if the player is jumping to the left, 
+                    if self.flipped: 
+                        #if the cursor is on the left side, 
+                        RENDER_OFFSET_X = 3
+                        RENDER_OFFSET_Y = -2
+                    else: 
+                        #if the cursor is on the right side, 
+                        RENDER_OFFSET_Y = -1
+                        RENDER_OFFSET_X = 7
             
-            surf.blit(rotated_weapon_display,(self.anchor_point[0] - offset[0]-deviation_fix_x+RUN_RENDER_OFFSET, self.anchor_point[1]-offset[1]-deviation_fix_y))
+            surf.blit(rotated_weapon_display,(self.anchor_point[0] - offset[0]-deviation_fix_x+RENDER_OFFSET_X, self.anchor_point[1]-offset[1]-deviation_fix_y+RENDER_OFFSET_Y))
 
   

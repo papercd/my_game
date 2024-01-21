@@ -46,8 +46,8 @@ class myGame:
             'player/idle' : Animation(load_images('entities/player/holding_gun/idle',background='transparent'), img_dur =6),
             'player/run' : Animation(load_images('entities/player/holding_gun/run',background='transparent'), img_dur =4),
 
-            'player/jump_up' : Animation(load_images('entities/player/jump/up',background='transparent'), img_dur =5),
-            'player/jump_down' : Animation(load_images('entities/player/jump/down',background='transparent'), img_dur =5,halt=True),
+            'player/jump_up' : Animation(load_images('entities/player/holding_gun/jump/up',background='transparent'), img_dur =5),
+            'player/jump_down' : Animation(load_images('entities/player/holding_gun/jump/down',background='transparent'), img_dur =5,halt=True),
            
 
             'player/slide' : Animation(load_images('entities/player/slide',background='transparent'), img_dur =5),
