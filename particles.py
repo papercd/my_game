@@ -7,14 +7,10 @@ class Particle:
         self.pos = list(pos)
         self.velocity = velocity
         self.animation = self.game.assets['particle/' + p_type].copy()
-        self.animation.frame = frame 
+        self.animation.frame = frame
+        
 
-    def flip_images(self,x_flip):
-        for ind in range(len(self.animation.images)):
-            image = pygame.transform.flip(self.animation.images[ind],x_flip,False)
-            self.animation.images[ind] = image
-            
-        #image = pygame.transform.flip(image,True,False)
+  
             
 
     def update(self):

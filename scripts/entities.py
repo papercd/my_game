@@ -124,7 +124,7 @@ class PlayerEntity(PhysicsEntity):
         self.slide = False 
         self.on_wall = self.collisions['left'] or self.collisions['right']
         self.air_time = 0
-
+        self.movement_intent = [0,0]
         #attributes required to implement double tap 
       
         self.boost_dir = False 
@@ -132,10 +132,14 @@ class PlayerEntity(PhysicsEntity):
         self.frame_count = 0
         self.frame_between_taps = 0
         self.running_time = 0
+
+        #attributes required to implement weapon equipment 
+        self.holding_weapon = False 
         
 
     def update_pos(self, tile_map, movement=(0, 0)):
         super().update_pos(tile_map, movement)
+        self.movement_intent = movement
         self.air_time +=1
         self.frame_count += 1
         self.cut_movement_input = False 
@@ -235,3 +239,5 @@ class PlayerEntity(PhysicsEntity):
             self.velocity[1] = -3.5  
 
 
+    def equip_weapon(self,weapon):
+        pass 

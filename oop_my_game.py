@@ -8,7 +8,9 @@ from scripts.utils import load_image,load_images,Animation
 from scripts.entities import PhysicsEntity,PlayerEntity
 from scripts.clouds import Clouds
 from scripts.particles import Particle
-from scripts.background import Background
+from scripts.cursor import Cursor
+from scripts.weapons import Weapon 
+
 #now we need to add in the we have the player, now we need to add in the tiles. Now this is where things get a lot more difficult to follow. 
 
 class myGame:
@@ -33,15 +35,16 @@ class myGame:
             'background': load_image('background.png'),
             'test_background' : load_image('test_background.png'),
 
-            'crosshair' : load_image('crosshair.png'),
+            'cursor/default' : load_image('cursor/default_cursor.png',background='black'),
+            'crosshair' : load_image('cursor/crosshair.png'),
 
 
             'clouds': load_images('clouds/default'),
             'gray1_clouds' : load_images('clouds/gray1',background = 'transparent'),
             'gray2_clouds' : load_images('clouds/gray2',background = 'transparent'),
             
-            'player/idle' : Animation(load_images('entities/player/idle',background='transparent'), img_dur =6),
-            'player/run' : Animation(load_images('entities/player/run',background='transparent'), img_dur =4),
+            'player/idle' : Animation(load_images('entities/player/holding_gun/idle',background='transparent'), img_dur =6),
+            'player/run' : Animation(load_images('entities/player/holding_gun/run',background='transparent'), img_dur =4),
 
             'player/jump_up' : Animation(load_images('entities/player/jump/up',background='transparent'), img_dur =5),
             'player/jump_down' : Animation(load_images('entities/player/jump/down',background='transparent'), img_dur =5,halt=True),
@@ -58,8 +61,10 @@ class myGame:
             'particle/dash_right' : Animation(load_images('particles/dash/right',background='black'),img_dur=1,loop =False)
         } 
 
-        #self.clouds = Clouds(self.assets['clouds'],count = 10, direction ='right')``
-        #self.opp_clouds = Clouds(self.assets['clouds'],count = 6, direction ='left')
+
+        self.weapons = {
+            'ak' : Weapon('ak',load_image('weapons/ak_holding.png',background='transparent'))
+        }
 
         self.gray_clouds = Clouds(self.assets['gray1_clouds'],count = 8,direction='right')
         self.opp_gray_clouds = Clouds(self.assets['gray2_clouds'],count = 6, direction= 'left')
@@ -88,7 +93,16 @@ class myGame:
         #be able to jump, and collide into things. First, I am going to make 
         # a physics entity class from which we can create objects to apply physics onto, 
         #then create the player entity from that class.
-    
+
+        
+        #cursor object 
+        pygame.mouse.set_visible(False)
+        self.cursor = Cursor(self,(50,50),'default')
+
+        #test weapon rendering 
+        self.weapons['ak'].equip(self.player)
+        
+
 
     def run(self):
         while True: 
@@ -128,10 +142,19 @@ class myGame:
 
             self.player.update_pos(self.Tilemap,((self.player_movement[1]-self.player_movement[0])*PLAYER_DEFAULT_SPEED,0))
             self.player.render(self.display,render_scroll)
-            mpos = pygame.mouse.get_pos()
-            mpos = (mpos[0]/2-24,mpos[1]/2-23)
-            self.display.blit(self.assets['crosshair'],mpos)
-        
+
+
+            #code for the cursor 
+            self.cursor.update()
+            self.cursor.render(self.display)
+
+
+            #code for the weapon 
+            self.weapons['ak'].update(self.cursor.pos)
+            self.weapons['ak'].render(self.display,render_scroll)
+
+
+
             for particle in self.particles.copy():
                 if particle == None: 
                     self.particles.remove(particle)
