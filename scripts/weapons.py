@@ -2,289 +2,139 @@ import pygame
 import math 
 
 class Weapon:
-    def __init__(self,type,sprite): 
+    def __init__(self,type,sprite,fire_rate,opening_pos): 
         self.type = type 
         self.sprite = sprite 
+        self.fire_rate = fire_rate
+        self.opening_pos = list(opening_pos)
         self.flipped = False 
         self.can_shoot = False 
+        self.left_anchor = self.sprite.get_rect().topleft
+        self.right_anchor = self.sprite.get_rect().topright
+        self.pivot = [0,0]
+    
+
+    
+    def rotate(self,surface, angle, pivot, offset):
+        
+        rotated_image = pygame.transform.rotozoom(surface, -angle, 1)  # Rotate the image.
+        rotated_offset = offset.rotate(angle)  # Rotate the offset vector.
+        # Add the offset vector to the center/pivot point to shift the rect.
+        rect = rotated_image.get_rect(center=pivot+rotated_offset)
+        return rotated_image, rect  # Return the rotated image and shifted rect.
+    
 
     def equip(self,holder_entity):
         self.holder = holder_entity
-        self.anchor_point = (self.holder.rect().topleft[0], self.holder.rect().topleft[1]+3)
+
+    def shoot(self,firerate_frame):
+        if firerate_frame % self.fire_rate == 0:
+            #then you shoot. 
+            pass   
 
     def update(self,cursor_pos):
         self.mpos = cursor_pos
-        self.anchor_point = (self.holder.rect().topleft[0], self.holder.rect().topleft[1]+3)
+
 
     
     def render(self,surf,offset = (0,0)):
-      
-        weapon_display = pygame.Surface(self.sprite.get_size(),pygame.SRCALPHA,32)
+        
+        rotate_cap_left = False
+        rotate_cap_right = False
+
+        #you need to define the anchor point positions for every state of the player. 
+        if self.holder.state == 'idle':
+            self.left_anchor = (2,6)
+            self.right_anchor = (13,6)
+        elif self.holder.state == 'run':
+            if self.holder.flip: 
+                self.left_anchor = (1,6)
+                self.right_anchor = (8,5)
+            else:
+                self.left_anchor = (7,5)
+                self.right_anchor = (14,6)
+        elif self.holder.state == 'jump_up':
+            if self.holder.flip: 
+                self.left_anchor = (0,4)
+                self.right_anchor =  (9,4) 
+            else: 
+                self.left_anchor = (6,4)
+                self.right_anchor = (15,5)
+
+        elif self.holder.state == 'jump_down':
+            if self.holder.flip: 
+                self.left_anchor = (3,5)
+                self.right_anchor = (10,4)
+            else: 
+                self.left_anchor = (2,4)
+                self.right_anchor = (7,5)
+               
+        elif self.holder.state == 'slide': 
+            if self.holder.flip:
+                rotate_cap_left = True
+                self.right_anchor = (11,9)
+            else: 
+                self.left_anchor = (4,9)
+                rotate_cap_right = True 
+        
+        #there is a bug wehere you can see frames blitz over at the 90 and - 90 line. think there is something going on when flip occurs. 
+       
+
+        if self.flipped: 
+            dx, dy = self.mpos[0] - (self.holder.pos[0]+self.right_anchor[0]-offset[0]), self.mpos[1] - (self.holder.pos[1]+self.right_anchor[1]-offset[1])  
+            self.pivot = [self.holder.pos[0]+self.right_anchor[0]-offset[0]-1,self.holder.pos[1]+self.right_anchor[1] -offset[1]]
+            self.render_offset = pygame.math.Vector2(-7,2)       
+        else: 
+            dx,dy = self.mpos[0] - (self.holder.pos[0]+self.left_anchor[0]-offset[0]), self.mpos[1] - (self.holder.pos[1]+self.left_anchor[1] -offset[1]) 
+            self.pivot = [self.holder.pos[0]+self.left_anchor[0]-offset[0]+1,self.holder.pos[1]+self.left_anchor[1] -offset[1]]
+            self.render_offset = pygame.math.Vector2(7,2)
+
+        angle = math.degrees(math.atan2(-dy,dx)) 
+        print(angle)
+
+        if (angle > 90 and angle <= 180) or (angle < -90 and angle >= -180):
+            
+            if rotate_cap_right:
+                if self.flipped:
+                    self.sprite = pygame.transform.flip(self.sprite,True,False)
+                    self.flipped = False
+                if (angle > 90 and angle <= 180):
+                    
+                    angle = -82
+                elif (angle < -90 and angle >= -180):
+                    
+                    angle = 83
+            else: 
+                if self.flipped != True: 
+                    self.sprite = pygame.transform.flip(self.sprite,True,False)
+                    self.flipped = True 
+                angle += 180
+                angle = -angle
+        else: 
+            if rotate_cap_left:
+                if self.flipped == False: 
+                    self.sprite = pygame.transform.flip(self.sprite,True,False)
+                    self.flipped = True
+                if (angle >0 and angle <= 90) : 
+                    pass
+                    angle = 65
+                elif (angle <= 0 and angle >= -90):
+                    pass
+                    angle =  -72
+            else: 
+                if self.flipped != False: 
+                    self.sprite = self.sprite = pygame.transform.flip(self.sprite,True,False)
+                    self.flipped = False             
+                angle = -angle
+
+        
+
+        weapon_display = pygame.Surface((self.sprite.get_width(),self.sprite.get_height()),pygame.SRCALPHA)
         weapon_display.blit(self.sprite,(0,0))
 
-        ANGLE_OFFSET =0
+        rotated_image,rect = self.rotate(weapon_display,angle,self.pivot,self.render_offset)
 
-        if self.flipped == False: 
-            ANGLE_OFFSET =11
-        else: 
-            ANGLE_OFFSET = -11
-       
+        surf.blit(rotated_image,rect)
 
-        dx, dy = self.mpos[0] - (self.anchor_point[0]-offset[0]), self.mpos[1] - (self.anchor_point[1] -offset[1]) 
-        angle = math.degrees(math.atan2(-dy,dx)) -ANGLE_OFFSET
-
-        angle_comp = angle + ANGLE_OFFSET
-
-
-        if (angle_comp > 90 and angle_comp < 180) or (angle_comp >= -180 and angle_comp < -90):
-            #flip the gun sprite. 
-            if self.flipped != True: 
-                self.sprite = pygame.transform.flip(self.sprite, False,True)
-                self.flipped = True 
-        else: 
-            if self.flipped == True: 
-                self.sprite = pygame.transform.flip(self.sprite, False,True)
-            self.flipped = False 
-
-        
-        
-        deviation_fix_x = 0
-        deviation_fix_y = 0
-
-        #second quadrant deviation fix 
-        second_angle = abs(angle_comp-180)
-       
-        
-        if  second_angle  > 0 and second_angle <=4 :
-            deviation_fix_y = second_angle/9
-            deviation_fix_x =  second_angle/ 60 +2
-        elif second_angle>4 and second_angle<= 10: 
-            deviation_fix_y = second_angle/7 -2
-            deviation_fix_x =  second_angle/ 70 +1
-        elif second_angle>10 and second_angle<=14:
-            deviation_fix_y = second_angle/6  -2.3
-            deviation_fix_x = -second_angle/ 70 +1
-        elif second_angle> 14 and second_angle<= 17: 
-            deviation_fix_y = second_angle/ 6.5 -2.3
-            deviation_fix_x = second_angle/ 70 + 1
-        elif second_angle>17 and second_angle<= 20:
-            deviation_fix_y = second_angle/ 6.3   -2.3
-            deviation_fix_x = second_angle/ 70    +1
-        elif second_angle>20 and second_angle<= 63:   
-            deviation_fix_y = second_angle/5.3   -2.3
-            deviation_fix_x = second_angle/ 77    +1
-        elif second_angle> 63 and second_angle<= 73: 
-            deviation_fix_y = second_angle/6.3   -2
-            deviation_fix_x = second_angle/ 77    -1
-            angle += 10
-        elif second_angle>73 and second_angle<= 77: 
-            deviation_fix_y = second_angle/6.6  -2.3
-            deviation_fix_x = second_angle/ 77    -1
-            angle += 12
-        elif second_angle> 77 and second_angle<=90: 
-            deviation_fix_y = second_angle/6.6   -2.3
-            deviation_fix_x = -second_angle/ 88    -1.5
-            angle += 13
-
-        third_angle = -(angle_comp + 180)
-        
-        #third quadrant deviation fix 
-        if third_angle < -0 and third_angle >= -16:
-            deviation_fix_y = -third_angle/20
-            deviation_fix_x = -third_angle/ 88  + 2
-        elif third_angle < -16 and third_angle >=-25:
-            deviation_fix_y = -third_angle/26
-            deviation_fix_x = -third_angle/ 84  +2
-        elif third_angle < -25 and third_angle >=-27:
-            deviation_fix_y = -third_angle/17
-            deviation_fix_x = -third_angle/ 65 +2
-        elif third_angle < -27 and third_angle >= -31:
-            deviation_fix_y = -third_angle/16
-            deviation_fix_x = -third_angle/ 88  +2
-        elif third_angle < -31 and third_angle >= -46:
-            deviation_fix_y = -third_angle/30
-            deviation_fix_x = third_angle/ 60  +1
-        elif third_angle < -46 and third_angle >= -57:
-            deviation_fix_y = -third_angle/30
-            deviation_fix_x = third_angle/ 60  -1
-            
-        elif third_angle < -57 and third_angle >= -66:
-            deviation_fix_y = -third_angle/30 -2
-            deviation_fix_x = third_angle/ 60  -4
-           
-        elif third_angle < -66 and third_angle >= -90:
-            deviation_fix_y = -third_angle/30 -2
-            deviation_fix_x = third_angle/ 60  -6
-
-
-        
-        #first quadrant deviation fix. 
-        if angle_comp  > 0 and angle_comp <=4 :
-            deviation_fix_y = angle/9
-            deviation_fix_x = - angle/ 60 -1
-        elif angle_comp>4 and angle_comp<= 10: 
-            deviation_fix_y = angle/7
-            deviation_fix_x = - angle/ 70
-        elif angle_comp>10 and angle_comp<=14:
-            deviation_fix_y = angle/6
-            deviation_fix_x = angle/ 70
-        elif angle_comp> 14 and angle_comp<= 17: 
-            deviation_fix_y = angle/ 6.5
-            deviation_fix_x = -angle/ 70 
-        elif angle_comp>17 and angle_comp<= 20:
-            deviation_fix_y = angle/ 6.3
-            deviation_fix_x = -angle/ 70 
-        elif angle_comp>20 and angle_comp<= 63:   
-            deviation_fix_y = angle/ 5.3
-            deviation_fix_x = -angle/ 77 
-        elif angle_comp> 63 and angle_comp<= 73: 
-            deviation_fix_y = angle/ 6.3
-            deviation_fix_x = -angle/ 77 
-        elif angle_comp>73 and angle<= 77: 
-            deviation_fix_y = angle/ 6.6
-            deviation_fix_x = -angle/ 77 
-        elif angle_comp> 77 and angle_comp<=90: 
-            deviation_fix_y = angle/ 6.6
-            deviation_fix_x = angle/ 88 
-
-        #fourth quadrant deviation fix
-        if angle_comp < -6 and angle_comp >= -16:
-            deviation_fix_y = -angle_comp/20
-            deviation_fix_x = angle_comp/ 88 
-        elif angle_comp < -16 and angle_comp >=-25:
-            deviation_fix_y = -angle_comp/26
-            deviation_fix_x = angle_comp/ 84 
-        elif angle_comp < -25 and angle_comp >=-27:
-            deviation_fix_y = -angle_comp/17
-            deviation_fix_x = angle_comp/ 65
-        elif angle_comp < -27 and angle_comp >= -31:
-            deviation_fix_y = -angle_comp/16
-            deviation_fix_x = angle_comp/ 88 
-        elif angle_comp < -31 and angle_comp >= -90:
-            deviation_fix_y = -angle_comp/30
-            deviation_fix_x = -angle_comp/ 60     
-        
-        print(angle_comp)
-        rotated_weapon_display = pygame.transform.rotate(weapon_display,angle)
-
-        #now depending on whether the gun is flipped, change the blit location. 
-
-        if self.holder.state == 'idle':
-            surf.blit(rotated_weapon_display,(self.anchor_point[0] - offset[0]-deviation_fix_x, self.anchor_point[1]-offset[1]-deviation_fix_y))
-        elif self.holder.state == 'dash_right' or self.holder.state == 'dash_left':
-            #cap the angle of gun, and apply similar Render offsets.
-            #angle_comp = angle + ANGLE_OFFSET
-            pass 
-            
-        else: 
-            RENDER_OFFSET_X = 0
-            RENDER_OFFSET_Y = 0
-            if self.holder.state == 'run':
-                
-                if self.holder.movement_intent[0] >0:
-                    #if player is running to the right, 
-                    if self.flipped: 
-                        #if the cursor is on the left side, 
-                
-                        RENDER_OFFSET_X = 1
-                    else: 
-                        #if the cursor is on the right side, 
-                        RENDER_OFFSET_X = 3
-                elif self.holder.movement_intent[0] < 0 :
-                    #if the player is running to the left, 
-                    if self.flipped: 
-                        #if the cursor is on the left side, 
-                        RENDER_OFFSET_X = -3
-                    else: 
-                        RENDER_OFFSET_X = -2
-                
-            elif self.holder.state == 'jump_up':
-                if self.holder.movement_intent[0] == 0 :
-                    if self.holder.flip: 
-                        
-                        #if player is jumping directly up,
-                        if self.flipped:
-                            #if the cursor is on the left side, 
-                            RENDER_OFFSET_Y = -2
-                            RENDER_OFFSET_X = -3
-                        else: 
-                        
-                            #if the cursor is on the right side, 
-                            RENDER_OFFSET_Y = -1
-                            RENDER_OFFSET_X = -1
-                    else: 
-                        if self.flipped: 
-                            #if the cursor is on the left side, 
-                            RENDER_OFFSET_Y = -1
-                            RENDER_OFFSET_X = 2
-                        else: 
-                            RENDER_OFFSET_Y = -2
-                            RENDER_OFFSET_X = 2
-
-                if self.holder.movement_intent[0] >0:
-                    #if player is jumping to the right, 
-                    if self.flipped:
-                        #if the cursor is on the left side, 
-                        RENDER_OFFSET_Y = -1
-                        RENDER_OFFSET_X = 1
-                    else: 
-                    
-                        #if the cursor is on the right side, 
-                        RENDER_OFFSET_Y = -2
-                        RENDER_OFFSET_X = 2.
-                elif self.holder.movement_intent[0] < 0 :
-                    #if the player is jumping to the left, 
-                    if self.flipped: 
-                        #if the cursor is on the left side, 
-                        RENDER_OFFSET_X = -3
-                    else: 
-                        #if the cursor is on the right side
-                        RENDER_OFFSET_X = -1
-            elif self.holder.state == 'jump_down':
-                if self.holder.movement_intent[0] == 0 :
-                    #if player is jumping directly up,
-                    if self.holder.flip: 
-                        if self.flipped:
-                            #if the cursor is on the left side, 
-                            RENDER_OFFSET_Y = -1
-                            RENDER_OFFSET_X = 2
-                        else: 
-                    
-                            #if the cursor is on the right side, 
-                            RENDER_OFFSET_Y = -1
-                            RENDER_OFFSET_X = 6
-                            
-                    else: 
-                        if self.flipped:
-                            #if the cursor is on the left side, 
-                            RENDER_OFFSET_Y = -1
-                            RENDER_OFFSET_X = 1
-                        else: 
-                        
-                            #if the cursor is on the right side, 
-                            RENDER_OFFSET_Y = -1
-                            RENDER_OFFSET_X = 3
-                if self.holder.movement_intent[0] >0:
-                    #if player is jumping to the right, 
-                    if self.flipped:
-                        #if the cursor is on the left side, 
-                
-                        RENDER_OFFSET_X = 1
-                    else: 
-                        #if the cursor is on the right side, 
-                        RENDER_OFFSET_Y = -1
-                        RENDER_OFFSET_X = 4
-                elif self.holder.movement_intent[0] < 0 :
-                    #if the player is jumping to the left, 
-                    if self.flipped: 
-                        #if the cursor is on the left side, 
-                        RENDER_OFFSET_X = 3
-                        RENDER_OFFSET_Y = -2
-                    else: 
-                        #if the cursor is on the right side, 
-                        RENDER_OFFSET_Y = -1
-                        RENDER_OFFSET_X = 7
-            
-            surf.blit(rotated_weapon_display,(self.anchor_point[0] - offset[0]-deviation_fix_x+RENDER_OFFSET_X, self.anchor_point[1]-offset[1]-deviation_fix_y+RENDER_OFFSET_Y))
 
   

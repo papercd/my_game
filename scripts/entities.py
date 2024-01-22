@@ -125,6 +125,7 @@ class PlayerEntity(PhysicsEntity):
         self.on_wall = self.collisions['left'] or self.collisions['right']
         self.air_time = 0
         self.movement_intent = [0,0]
+
         #attributes required to implement double tap 
       
         self.boost_dir = False 
@@ -134,14 +135,17 @@ class PlayerEntity(PhysicsEntity):
         self.running_time = 0
 
         #attributes required to implement weapon equipment 
-        self.holding_weapon = False 
+        self.equipped = False 
+        self.cur_weapon = None 
+        self.firerate_frame = 0
         
 
-    def update_pos(self, tile_map, movement=(0, 0)):
+    def update_pos(self, tile_map,cursor_pos,movement=(0, 0)):
         super().update_pos(tile_map, movement)
         self.movement_intent = movement
         self.air_time +=1
         self.frame_count += 1
+        self.firerate_frame += 1
         self.cut_movement_input = False 
 
         if self.collisions['down']:
@@ -213,11 +217,23 @@ class PlayerEntity(PhysicsEntity):
             else: 
                 self.set_state('idle') 
 
+        if self.equipped:
+            self.cur_weapon.update(cursor_pos)
+
+        if self.firerate_frame >= 1000:
+            self.firerate_frame = 0
+
+    
+    def render(self,surf,offset):
+        super().render(surf,offset)
+        if self.equipped: 
+            self.cur_weapon.render(surf,offset)
         
     def player_jump(self):
-
+        
         if self.wall_slide: 
             self.jump_count = 1
+            
             if self.collisions['left']:
                 
                 self.velocity[0] =  3.6
@@ -225,19 +241,31 @@ class PlayerEntity(PhysicsEntity):
                 
                 self.velocity[0] = -3.6
             self.velocity[1] =-3.3
-            
+            air = Particle(self.game,'jump',(self.rect().centerx,self.rect().bottom), velocity=[0,0.1],frame=0)
+            self.game.particles.append(air)
 
         if self.jump_count == 2:
-            if self.state == 'jump':
+            if self.state == 'jump_down':
                 self.jump_count -=2
                 self.velocity[1] = -3.5
+                air = Particle(self.game,'jump',(self.rect().centerx,self.rect().bottom), velocity=[0,0.1],frame=0)
+                self.game.particles.append(air)
             else: 
                 self.jump_count -=1
                 self.velocity[1] = -3.5    
+            
         elif self.jump_count ==1: 
             self.jump_count -=1
             self.velocity[1] = -3.5  
-
+            air = Particle(self.game,'jump',(self.rect().centerx,self.rect().bottom), velocity=[0,0.1],frame=0)
+            self.game.particles.append(air)
 
     def equip_weapon(self,weapon):
-        pass 
+        self.cur_weapon = weapon 
+        self.equipped = True 
+
+        self.cur_weapon.equip(self)
+
+    def shoot_weapon(self):
+        if self.equipped: 
+            self.cur_weapon.shoot(self.firerate_frame)

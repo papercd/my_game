@@ -56,14 +56,14 @@ class myGame:
 
 
             'particle/leaf':Animation(load_images('particles/leaf'),img_dur =20,loop=False),
-            
+            'particle/jump':Animation(load_images('particles/jump',background= 'black'),img_dur= 2, loop= False),
             'particle/dash_left' : Animation(load_images('particles/dash/left',background='black'),img_dur=1,loop =False),
             'particle/dash_right' : Animation(load_images('particles/dash/right',background='black'),img_dur=1,loop =False)
         } 
 
 
         self.weapons = {
-            'ak' : Weapon('ak',load_image('weapons/ak_holding.png',background='transparent'))
+            'ak' : Weapon('ak',load_image('weapons/ak_holding.png',background='transparent'), 4,(17,2))
         }
 
         self.gray_clouds = Clouds(self.assets['gray1_clouds'],count = 8,direction='right')
@@ -99,9 +99,9 @@ class myGame:
         pygame.mouse.set_visible(False)
         self.cursor = Cursor(self,(50,50),'default')
 
-        #test weapon rendering 
-        self.weapons['ak'].equip(self.player)
-        
+        #test weapon equip
+        #self.weapons['ak'].equip(self.player)
+        self.player.equip_weapon(self.weapons['ak'])
 
 
     def run(self):
@@ -126,11 +126,6 @@ class myGame:
             self.opp_gray_clouds.update()
             self.opp_gray_clouds.render(self.display,render_scroll)
 
-            #self.clouds.update()
-            #self.clouds.render(self.display,render_scroll)
-
-            #self.opp_clouds.update()
-            #self.opp_clouds.render(self.display,render_scroll)
             
 
             #Now that you've defined the update and render functions internally in the playerEntity class, 
@@ -140,19 +135,13 @@ class myGame:
             PLAYER_DEFAULT_SPEED = 1.5
 
 
-            self.player.update_pos(self.Tilemap,((self.player_movement[1]-self.player_movement[0])*PLAYER_DEFAULT_SPEED,0))
+            self.player.update_pos(self.Tilemap,self.cursor.pos,((self.player_movement[1]-self.player_movement[0])*PLAYER_DEFAULT_SPEED,0))
             self.player.render(self.display,render_scroll)
-
 
             #code for the cursor 
             self.cursor.update()
             self.cursor.render(self.display)
-
-
-            #code for the weapon 
-            self.weapons['ak'].update(self.cursor.pos)
-            self.weapons['ak'].render(self.display,render_scroll)
-
+            
 
 
             for particle in self.particles.copy():
@@ -172,6 +161,9 @@ class myGame:
                     #then pygame is closed, and the system is closed. 
                     pygame.quit() 
                     sys.exit() 
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        self.player.shoot_weapon()
 
                 #define when the right or left arrow keys are pressed, the corresponding player's movement variable varlues are changed. 
                 if event.type == pygame.KEYDOWN: 
