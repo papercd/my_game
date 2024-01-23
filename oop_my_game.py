@@ -10,8 +10,8 @@ from scripts.clouds import Clouds
 from scripts.particles import Particle
 from scripts.cursor import Cursor
 from scripts.weapons import Weapon 
+from scripts.bullet import Bullet 
 
-#now we need to add in the we have the player, now we need to add in the tiles. Now this is where things get a lot more difficult to follow. 
 
 class myGame:
     def __init__(self):
@@ -24,8 +24,6 @@ class myGame:
         #so coming back to here, we will define an assets dictionary that contains all of the assets
         #(sprites) that we are going to use to create our game. 
 
-        #Now that we have our load_image function defined, let's load the background into our assets 
-        #and have that blitted onto our screen rather than just a gray screen. 
         self.assets = {
             'decor' : load_images('tiles/decor'),
             'grass' : load_images('tiles/grass'),
@@ -58,17 +56,24 @@ class myGame:
             'particle/leaf':Animation(load_images('particles/leaf'),img_dur =20,loop=False),
             'particle/jump':Animation(load_images('particles/jump',background= 'black'),img_dur= 2, loop= False),
             'particle/dash_left' : Animation(load_images('particles/dash/left',background='black'),img_dur=1,loop =False),
-            'particle/dash_right' : Animation(load_images('particles/dash/right',background='black'),img_dur=1,loop =False)
+            'particle/dash_right' : Animation(load_images('particles/dash/right',background='black'),img_dur=1,loop =False),
+
+            'particle/ak_smoke' : Animation(load_images('particles/ak_smoke',background='black'),img_dur=2,loop=False)
         } 
 
 
         self.weapons = {
-            'ak' : Weapon('ak',load_image('weapons/ak_holding.png',background='transparent'), 4,(17,2))
+            'ak' : Weapon('rifle',load_image('weapons/ak_holding.png',background='transparent'), 10,(2,2))
         }
+
+        self.bullets = {
+            'rifle_small' : Bullet('rifle',13,load_image('bullets/rifle/small.png',background='transparent'))
+        }
+
+
 
         self.gray_clouds = Clouds(self.assets['gray1_clouds'],count = 8,direction='right')
         self.opp_gray_clouds = Clouds(self.assets['gray2_clouds'],count = 6, direction= 'left')
-
 
         self.Tilemap = Tilemap(self,tile_size=16)
         self.Tilemap.load('map.json')
@@ -82,25 +87,17 @@ class myGame:
         
 
         self.particles = []
-
+        self.bullets_screen = []
 
         self.player = PlayerEntity(self,(50,50),(16,16))
         self.player_movement = [False,False]
         self.scroll = [0,0]
         
-    
-        #alright, now I am going to add a physics engine to make the player 
-        #be able to jump, and collide into things. First, I am going to make 
-        # a physics entity class from which we can create objects to apply physics onto, 
-        #then create the player entity from that class.
-
-        
         #cursor object 
-        pygame.mouse.set_visible(False)
-        self.cursor = Cursor(self,(50,50),'default')
+        pygame.mouse.set_visible(True)
+        self.cursor = Cursor(self,(50,50),(4,4),'default')
 
-        #test weapon equip
-        #self.weapons['ak'].equip(self.player)
+        #weapon equip
         self.player.equip_weapon(self.weapons['ak'])
 
 
@@ -126,7 +123,6 @@ class myGame:
             self.opp_gray_clouds.update()
             self.opp_gray_clouds.render(self.display,render_scroll)
 
-            
 
             #Now that you've defined the update and render functions internally in the playerEntity class, 
             #We don't need the code here. 
@@ -137,6 +133,8 @@ class myGame:
 
             self.player.update_pos(self.Tilemap,self.cursor.pos,((self.player_movement[1]-self.player_movement[0])*PLAYER_DEFAULT_SPEED,0))
             self.player.render(self.display,render_scroll)
+            if self.player.is_shooting: 
+                self.player.shoot_weapon()
 
             #code for the cursor 
             self.cursor.update()
@@ -155,16 +153,31 @@ class myGame:
                     if kill: 
                         self.particles.remove(particle)
 
+            for bullet in self.bullets_screen:
+                if bullet == None: 
+                    self.bullets_screen.remove(bullet)
+                else: 
+                    kill = bullet.update()
+                    bullet.render(self.display)
+                
+                    if kill: 
+                        self.bullets_screen.remove(bullet)
+
             for event in pygame.event.get():
                 #We need to define when the close button is pressed on the window. 
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        self.player.is_shooting = True 
+                        
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        self.player.is_shooting = False 
+                        
                 if event.type == pygame.QUIT: 
                     #then pygame is closed, and the system is closed. 
                     pygame.quit() 
                     sys.exit() 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        self.player.shoot_weapon()
-
+                
                 #define when the right or left arrow keys are pressed, the corresponding player's movement variable varlues are changed. 
                 if event.type == pygame.KEYDOWN: 
                     if event.key == pygame.K_a: 

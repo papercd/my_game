@@ -137,7 +137,7 @@ class PlayerEntity(PhysicsEntity):
         #attributes required to implement weapon equipment 
         self.equipped = False 
         self.cur_weapon = None 
-        self.firerate_frame = 0
+        self.is_shooting = False
         
 
     def update_pos(self, tile_map,cursor_pos,movement=(0, 0)):
@@ -145,7 +145,7 @@ class PlayerEntity(PhysicsEntity):
         self.movement_intent = movement
         self.air_time +=1
         self.frame_count += 1
-        self.firerate_frame += 1
+
         self.cut_movement_input = False 
 
         if self.collisions['down']:
@@ -220,9 +220,7 @@ class PlayerEntity(PhysicsEntity):
         if self.equipped:
             self.cur_weapon.update(cursor_pos)
 
-        if self.firerate_frame >= 1000:
-            self.firerate_frame = 0
-
+        
     
     def render(self,surf,offset):
         super().render(surf,offset)
@@ -267,5 +265,9 @@ class PlayerEntity(PhysicsEntity):
         self.cur_weapon.equip(self)
 
     def shoot_weapon(self):
+        #testing bullet firing
+        test_shell = self.game.bullets['rifle_small'].copy()
         if self.equipped: 
-            self.cur_weapon.shoot(self.firerate_frame)
+            self.cur_weapon.load(test_shell)
+            self.game.bullets_screen.append(self.cur_weapon.shoot())
+        
