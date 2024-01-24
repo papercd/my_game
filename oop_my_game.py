@@ -5,12 +5,12 @@ import math
 import sys 
 from scripts.tilemap import Tilemap
 from scripts.utils import load_image,load_images,Animation
-from scripts.entities import PhysicsEntity,PlayerEntity
+from scripts.entities import PlayerEntity
 from scripts.clouds import Clouds
 from scripts.particles import Particle
 from scripts.cursor import Cursor
 from scripts.weapons import Weapon 
-from scripts.bullet import Bullet 
+
 
 
 class myGame:
@@ -63,14 +63,15 @@ class myGame:
 
 
         self.weapons = {
-            'ak' : Weapon('rifle',load_image('weapons/ak_holding.png',background='transparent'), 10,(2,2))
+            'ak' : Weapon('rifle',load_image('weapons/ak_holding.png',background='transparent'), 10,15,(2,2))
         }
 
+        
         self.bullets = {
-            'rifle_small' : Bullet('rifle',13,load_image('bullets/rifle/small.png',background='transparent'))
+            'rifle_small' : load_image('bullets/rifle/small.png',background='transparent'),
         }
-
-
+        self.bullets_on_screen = []
+        
 
         self.gray_clouds = Clouds(self.assets['gray1_clouds'],count = 8,direction='right')
         self.opp_gray_clouds = Clouds(self.assets['gray2_clouds'],count = 6, direction= 'left')
@@ -87,7 +88,8 @@ class myGame:
         
 
         self.particles = []
-        self.bullets_screen = []
+        
+        
 
         self.player = PlayerEntity(self,(50,50),(16,16))
         self.player_movement = [False,False]
@@ -99,10 +101,13 @@ class myGame:
 
         #weapon equip
         self.player.equip_weapon(self.weapons['ak'])
-
+        self.frame_count = 0
+        self.reset = True 
+       
 
     def run(self):
         while True: 
+            self.frame_count = (self.frame_count+1) % 60 
             self.scroll[0] += (self.player.rect().centerx - self.display.get_width() /2 - self.scroll[0])/30
             self.scroll[1] += (self.player.rect().centery - self.display.get_height() /2 - self.scroll[1])/30
             render_scroll = (int(self.scroll[0]), int(self.scroll[1]))
@@ -133,8 +138,20 @@ class myGame:
 
             self.player.update_pos(self.Tilemap,self.cursor.pos,((self.player_movement[1]-self.player_movement[0])*PLAYER_DEFAULT_SPEED,0))
             self.player.render(self.display,render_scroll)
-            if self.player.is_shooting: 
-                self.player.shoot_weapon()
+            
+            #rapid fire and single fire toggle 
+            if pygame.mouse.get_pressed()[0]:
+                if self.player.weapon_toggle_state():
+                    #then you shoot. 
+                    self.player.shoot_weapon(self.frame_count)
+                else:
+                    #you shoot, once. 
+                    if self.reset == True: 
+                        self.player.shoot_weapon(self.frame_count)
+                        self.reset = False 
+            elif pygame.mouse.get_pressed()[0] == False:
+                self.reset = True 
+             
 
             #code for the cursor 
             self.cursor.update()
@@ -152,26 +169,20 @@ class myGame:
                         particle.pos[0] += math.sin(particle.animation.frame * 0.035) * 0.3
                     if kill: 
                         self.particles.remove(particle)
-
-            for bullet in self.bullets_screen:
+            
+            for bullet in self.bullets_on_screen:
                 if bullet == None: 
-                    self.bullets_screen.remove(bullet)
+                    self.bullets_on_screen.remove(bullet)
                 else: 
-                    kill = bullet.update()
-                    bullet.render(self.display)
+                    kill = bullet.update_pos(self.Tilemap)
+                    bullet.render(self.display,offset = render_scroll)
                 
                     if kill: 
-                        self.bullets_screen.remove(bullet)
+                        self.bullets_on_screen.remove(bullet)
+            
 
             for event in pygame.event.get():
                 #We need to define when the close button is pressed on the window. 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        self.player.is_shooting = True 
-                        
-                if event.type == pygame.MOUSEBUTTONUP:
-                    if event.button == 1:
-                        self.player.is_shooting = False 
                         
                 if event.type == pygame.QUIT: 
                     #then pygame is closed, and the system is closed. 
@@ -191,6 +202,8 @@ class myGame:
                         self.player.player_jump() 
                     if event.key == pygame.K_s: 
                         self.player.slide = True 
+                    if event.key == pygame.K_g: 
+                        self.player.toggle_rapid_fire()
 
                         
                 #define when the right or left arrow keys are then lifted, the corresponding player's movement variable values are changed back to false.

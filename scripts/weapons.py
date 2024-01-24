@@ -1,20 +1,25 @@
 import pygame 
 import math 
 
+WEAPONS_THAT_CAN_RAPID_FIRE = {'rifle'}
+
 class Weapon:
-    def __init__(self,type,sprite,fire_rate,img_pivot):  
+    def __init__(self,type,sprite,fire_rate,power,img_pivot):  
         self.type = type 
         self.sprite = sprite 
         self.img_pivot = img_pivot
         self.flipped = False 
-    
+        self.rapid_firing = False 
+        self.power=power
+        self.knockback = [0,0]
         self.fire_rate = fire_rate
-        self.fire_frame = 0
         self.magazine = []
 
-        self.is_shooting = False 
         self.opening_pos = [0,0]
     
+    def toggle_rapid_fire(self):
+        if self.type in WEAPONS_THAT_CAN_RAPID_FIRE:
+            self.rapid_firing = not self.rapid_firing
 
     
     def rotate(self,surface, angle, pivot, offset):
@@ -31,22 +36,20 @@ class Weapon:
         self.magazine.append(bullet)
 
     def shoot(self):
-        if self.fire_frame % self.fire_rate == 0:
-            bullet = self.magazine.pop()
-            if bullet: 
-                self.fire_frame += 1
-        
-                bullet.start = self.opening_pos.copy()
-                bullet.angle = -self.angle_opening
-                bullet.velocity = [math.cos(math.radians(bullet.angle)),math.sin(math.radians(bullet.angle))]
-                return bullet 
-            else: 
-                return None 
+        bullet = self.magazine.pop()
+        if bullet: 
+            #then you shoot the bullet.
+            bullet.pos = self.opening_pos.copy()
+            bullet.angle= self.angle_opening
+            bullet.sprite = pygame.transform.rotate(bullet.sprite,bullet.angle)
+            bullet.velocity = [math.cos(math.radians(-bullet.angle)) * self.power ,math.sin(math.radians(-bullet.angle))*self.power]  
+            self.knockback = [-bullet.velocity[0]/2,-bullet.velocity[1]/2]
+            return bullet 
         else: 
-            self.fire_frame += 1
+            return None 
+        
 
-                
-
+    
     def update(self,cursor_pos):
         self.mpos = cursor_pos
 
@@ -141,13 +144,25 @@ class Weapon:
         rotated_image,rect = self.rotate(weapon_display,angle,self.pivot,self.render_offset)
 
         #the gun's opening position  
-        self.opening_pos[0] = self.pivot[0] + math.cos(math.radians(-self.angle_opening)) * sprite_width
-        self.opening_pos[1] = self.pivot[1] + math.sin(math.radians(-self.angle_opening)) * sprite_width
+        #self.opening_pos[0] = self.pivot[0] + math.cos(math.radians(-self.angle_opening)) * sprite_width
+        #self.opening_pos[1] = self.pivot[1] + math.sin(math.radians(-self.angle_opening)) * sprite_width
+       
+        self.opening_pos[0] = self.pivot[0] + offset[0]+ math.cos(math.radians(-self.angle_opening)) * sprite_width
+        self.opening_pos[1] = self.pivot[1] + offset[1]+ math.sin(math.radians(-self.angle_opening)) * sprite_width
+
+        if self.knockback[0] < 0: 
+            self.knockback[0] = min(self.knockback[0] + 1.45, 0)
+        if self.knockback[0] > 0 :
+            self.knockback[0] = max(self.knockback[0] -1.45, 0)
+
+        if self.knockback[1] < 0: 
+            self.knockback[1] = min(self.knockback[1] + 1.45, 0)
+        if self.knockback[1] > 0 :
+            self.knockback[1] = max(self.knockback[1] -1.45, 0)
 
 
         if not blitz: 
-
-            surf.blit(rotated_image,rect)
+            surf.blit(rotated_image,(rect.topleft[0] + self.knockback[0],rect.topleft[1] + self.knockback[1]))
          
         
 

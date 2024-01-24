@@ -12,6 +12,7 @@ import pygame
 
 PHYSICS_APPLIED_TILE_TYPES = {'grass','stone'}
 AUTOTILE_TYPES = {'grass','stone'}
+BULLET_TILE_OFFSET = [(1,0),(1,-1),(0,-1),(-1,-1),(-1,0),(-1,1),(0,1),(1,1)]
 SURROUNDING_TILE_OFFSET = [(1,0),(1,-1),(0,-1),(0,0),(-1,-1),(-1,0),(-1,1),(0,1),(1,1)]
 
 
@@ -114,9 +115,16 @@ class Tilemap:
                 rects.append(rect)
         return rects 
     
-
-    def player_rects_around(self):
-        pass 
+    def bullet_tiles_around(self,pos):
+        tiles = []
+        tile_loc = (int(pos[0] // self.tile_size),int(pos[1] // self.tile_size))
+        for offset in SURROUNDING_TILE_OFFSET: 
+            check_loc = str(tile_loc[0]+offset[0]) + ';' + str(tile_loc[1] + offset[1])
+            if check_loc in self.tilemap:
+                if self.tilemap[check_loc].type in PHYSICS_APPLIED_TILE_TYPES: 
+                    tiles.append(self.tilemap[check_loc])
+        return tiles 
+    
 
     def autotile(self):
         for loc in self.tilemap:

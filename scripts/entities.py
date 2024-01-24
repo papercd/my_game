@@ -125,26 +125,29 @@ class PlayerEntity(PhysicsEntity):
         self.on_wall = self.collisions['left'] or self.collisions['right']
         self.air_time = 0
         self.movement_intent = [0,0]
+        self.is_shooting = False
 
         #attributes required to implement double tap 
       
         self.boost_dir = False 
         self.boost_on_next_tap = False 
-        self.frame_count = 0
-        self.frame_between_taps = 0
+        self.frame_count_between_taps = 0
+        #self.frame_between_taps = 0
         self.running_time = 0
 
         #attributes required to implement weapon equipment 
         self.equipped = False 
         self.cur_weapon = None 
-        self.is_shooting = False
         
+       
+      
 
     def update_pos(self, tile_map,cursor_pos,movement=(0, 0)):
         super().update_pos(tile_map, movement)
         self.movement_intent = movement
         self.air_time +=1
-        self.frame_count += 1
+ 
+        self.frame_count_between_taps += 1
 
         self.cut_movement_input = False 
 
@@ -155,6 +158,7 @@ class PlayerEntity(PhysicsEntity):
             
         self.wall_slide = False
         self.on_wall = self.collisions['left'] or self.collisions['right']
+        
 
         if self.on_wall and self.air_time > 4:
             self.wall_slide = True 
@@ -177,11 +181,11 @@ class PlayerEntity(PhysicsEntity):
             elif movement[0] != 0:
                 self.set_state('run')
 
-                self.frame_between_taps = self.frame_count
+                #self.frame_between_taps = self.frame_count
               
-                if self.frame_between_taps == 1 :
+                if self.frame_count_between_taps == 1 :
                     self.running_time += 1
-                elif (self.frame_between_taps > 1 and self.frame_between_taps <40):
+                elif (self.frame_count_between_taps > 1 and self.frame_count_between_taps <40):
     
                     if self.boost_on_next_tap and self.running_time < 10:
                         #then you boost.
@@ -208,7 +212,7 @@ class PlayerEntity(PhysicsEntity):
                     self.running_time = 0
                     
 
-                self.frame_count =0
+                self.frame_count_between_taps =0
 
                 if self.slide:
                     self.cut_movement_input = True
@@ -261,13 +265,174 @@ class PlayerEntity(PhysicsEntity):
     def equip_weapon(self,weapon):
         self.cur_weapon = weapon 
         self.equipped = True 
-
         self.cur_weapon.equip(self)
 
-    def shoot_weapon(self):
+    def shoot_weapon(self,frame):
         #testing bullet firing
-        test_shell = self.game.bullets['rifle_small'].copy()
         if self.equipped: 
-            self.cur_weapon.load(test_shell)
-            self.game.bullets_screen.append(self.cur_weapon.shoot())
+            if self.cur_weapon.rapid_firing:
+                if frame % self.cur_weapon.fire_rate == 0:
+                    test_shell_image = self.game.bullets['rifle_small'].copy()
+                    test_shell = Bullet(self.game,self.cur_weapon.opening_pos,test_shell_image.get_size(),test_shell_image).copy()
+                    self.cur_weapon.load(test_shell)
+                    self.game.bullets_on_screen.append(self.cur_weapon.shoot())
+            else: 
+                test_shell_image = self.game.bullets['rifle_small'].copy()
+                test_shell = Bullet(self.game,self.cur_weapon.opening_pos,test_shell_image.get_size(),test_shell_image).copy()
+                self.cur_weapon.load(test_shell)
+                self.game.bullets_on_screen.append(self.cur_weapon.shoot())
+                    
+                    
+    def toggle_rapid_fire(self):
+        if self.equipped:
+            self.cur_weapon.toggle_rapid_fire()
+
+
+    def weapon_toggle_state(self):
+        if self.equipped:
+            return self.cur_weapon.rapid_firing 
+
+
+class Bullet(PhysicsEntity): 
+    def __init__(self,game,pos,size,sprite):
+        super().__init__(game,'bullet',pos,size)
+        self.angle = 0
+        self.speed = 0 
+        self.sprite = sprite
+        self.set_state('in_place')
+        self.frames_flown = 0
+        self.test_tile = None
+  
+    def set_state(self, action):
+        self.state = action
+
+    def rect(self):
+        return pygame.Rect(self.pos[0],self.pos[1],self.sprite.get_width(),self.sprite.get_height())
+
+    def update_pos(self, tile_map,offset = (0,0)):
+        self.collisions = {'up' :False,'down' : False, 'left': False, 'right': False }
+        self.frames_flown +=1 
+
+        if self.frames_flown >= 50:
+            del self 
+            return True
+
+    
+
+        self.pos[0] += self.velocity[0] 
+        
+        
+        entity_rect = self.rect()
+        for rect in tile_map.physics_rects_around(self.pos):
+            if entity_rect.colliderect(rect):
+                if self.velocity[0] > 0: 
+                    entity_rect.right = rect.left 
+                
+                if self.velocity[0] < 0: 
+                    entity_rect.left = rect.right 
+            
+                self.pos[0] = entity_rect.x 
+                del self 
+                return True
+            
+        self.pos[1] += self.velocity[1]
+        entity_rect = self.rect()
+        for rect in tile_map.physics_rects_around(self.pos):
+            if entity_rect.colliderect(rect):
+                if self.velocity[1] > 0: 
+                    entity_rect.bottom = rect.top  
+                    #get rid of the buulet 
+                if self.velocity[1] < 0:  
+                    entity_rect.top = rect.bottom
+                    #get rid of the bullet 
+    
+                self.pos[1] = entity_rect.y 
+                del self 
+                return True
+        """
+        entity_rect = self.rect()
+        tiles = tile_map.bullet_tiles_around(self.pos)
+        if tiles:
+            self.test_tile = tiles.pop()
+        """     
+                
+                
+        """
+        
+        """
+        
+
+
+
+        
+
+        """
+        entity_rect = self.rect()
+        for rect in tile_map.physics_rects_around(self.pos):
+            if entity_rect.colliderect(rect):
+                del self 
+                return True
+                
+                if frame_movement[1] > 0: 
+                    self.collisions['down'] = True
+                    entity_rect.bottom = rect.top  
+                    #get rid of the buulet 
+                if frame_movement[1] < 0:  
+                    self.collisions['up'] = True
+                    entity_rect.top = rect.bottom
+                    #get rid of the bullet 
+                self.velocity[1] = 0 
+                self.pos[1] = entity_rect.y 
+        """
+    
+    def render(self,surf,offset = (0,0)):
+        """test_surface = pygame.Surface((16,16))
+        if self.rects:
+            surf.blit(test_surface,self.rects.pop())"""
+        surf.blit(self.sprite, (self.pos[0]-offset[0],self.pos[1]-offset[1]))
+       
+
+    def copy(self):
+        return Bullet(self.game,self.pos,self.size,self.sprite)
+
+
+
+""" 
+
+class Bullet: 
+    def __init__(self,type,speed,sprite):
+        self.type = type 
+        self.sprite = sprite 
+        self.pos = [0,0]
+        self.start = [0,0]
+        self.speed = speed 
+        self.velocity = [0,0]
+        self.frames_flown = 0
+        self.angle = 0
+    
+    def copy(self):
+        return Bullet(self.type,self.speed,self.sprite)
+
+    def update(self):
+        kill = False 
+        if self.frames_flown > 200:
+            kill = True 
+        self.accelerate()
+        self.pos[0] += self.velocity[0] * (self.speed + self.accelerate_amount)
+        self.pos[1] += self.velocity[1] * (self.speed + self.accelerate_amount)
+        self.frames_flown +=1
+
+        return kill 
+    
+    def accelerate(self):
+        self.accelerate_amount = math.sin(math.radians(self.frames_flown)) * 5
+
+    def render(self,surf):
+        #rotate the bullet 
+        
+        rotated_bullet = pygame.transform.rotate(self.sprite,-self.angle)
+        surf.blit(rotated_bullet,(self.pos[0] + self.start[0],self.pos[1]+ self.start[1]))
+        
+
+"""
         
